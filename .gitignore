@@ -259,3 +259,7 @@ config.local.*
 build/
 dist/
 out/
+
+prep-env.sh
+supabase/seed.sql
+supabase/.*

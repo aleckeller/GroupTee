@@ -79,16 +79,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("tee_times")
-        .select(
-          `
-          *,
-          weekends (
-            name,
-            start_date,
-            end_date
-          )
-        `
-        )
+        .select("*")
         .eq("group_id", selectedGroup.id)
         .order("tee_date", { ascending: true })
         .order("tee_time", { ascending: true });
@@ -197,12 +188,6 @@ export default function AdminDashboard() {
                     <View key={teeTime.id} style={styles.teeItem}>
                       <Text style={styles.teeTime}>
                         {formatTime(teeTime.tee_time)}
-                      </Text>
-                      <Text style={styles.badge}>
-                        {teeTime.weekends?.name || "Weekend"}
-                      </Text>
-                      <Text style={styles.badgeMuted}>
-                        Group {selectedGroup?.name}
                       </Text>
                     </View>
                   ))}

@@ -104,9 +104,13 @@ export default function AdminRoleManager() {
         <View
           style={[
             styles.roleBadge,
-            styles[
-              `role${item.role.charAt(0).toUpperCase() + item.role.slice(1)}`
-            ],
+            item.role === "admin"
+              ? styles.roleAdmin
+              : item.role === "member"
+              ? styles.roleMember
+              : item.role === "guest"
+              ? styles.roleGuest
+              : undefined,
           ]}
         >
           <Text style={styles.roleText}>{item.role}</Text>
