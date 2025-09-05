@@ -14,7 +14,6 @@ export type TeeTime = {
   players?: Player[];
   weekends: {
     id: string;
-    name: string;
     start_date: string;
     end_date: string;
   };

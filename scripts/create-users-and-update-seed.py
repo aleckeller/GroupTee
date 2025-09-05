@@ -282,12 +282,12 @@ INSERT INTO groups (id, name) VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'Group D');
 
 -- Insert sample weekends (dynamic dates for relative weekend labels)
-INSERT INTO weekends (id, name, start_date, end_date) VALUES
-  ('550e8400-e29b-41d4-a716-446655440010', 'This Weekend', '{this_weekend_start_str}', '{this_weekend_end_str}'),
-  ('550e8400-e29b-41d4-a716-446655440011', 'Next Weekend', '{next_weekend_start_str}', '{next_weekend_end_str}'),
-  ('550e8400-e29b-41d4-a716-446655440012', 'Weekend After Next', '{weekend_after_next_start_str}', '{weekend_after_next_end_str}'),
-  ('550e8400-e29b-41d4-a716-446655440013', 'Weekend in Month', '{weekend_month_start_str}', '{weekend_month_end_str}'),
-  ('550e8400-e29b-41d4-a716-446655440014', 'Weekend No Tee Times', '{weekend_no_tee_times_start_str}', '{weekend_no_tee_times_end_str}');
+INSERT INTO weekends (id, start_date, end_date) VALUES
+  ('550e8400-e29b-41d4-a716-446655440010', '{this_weekend_start_str}', '{this_weekend_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440011', '{next_weekend_start_str}', '{next_weekend_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_start_str}', '{weekend_after_next_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440013', '{weekend_month_start_str}', '{weekend_month_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440014', '{weekend_no_tee_times_start_str}', '{weekend_no_tee_times_end_str}');
 
 -- Insert sample tee times for This Weekend
 INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players) VALUES

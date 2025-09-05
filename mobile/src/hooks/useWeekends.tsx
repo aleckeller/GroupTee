@@ -3,7 +3,6 @@ import { supabase } from "@/lib/supabase";
 
 export interface Weekend {
   id: string;
-  name: string;
   start_date: string;
   end_date: string;
 }

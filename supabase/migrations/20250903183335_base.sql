@@ -23,8 +23,6 @@ create table if not exists memberships (
 
 create table if not exists weekends (
   id uuid primary key default gen_random_uuid(),
-  -- REMOVE NAME COLUMN
-  name text not null,
   start_date date not null,
   end_date date not null,
   created_at timestamp with time zone default now()

@@ -35,6 +35,28 @@ function getRelativeWeekendLabel(
   }
 }
 
+function groupTeeTimesByDay(teeTimes: TeeTime[]) {
+  const grouped: { [key: string]: TeeTime[] } = {};
+
+  teeTimes.forEach((teeTime) => {
+    const dayKey = teeTime.tee_date;
+    if (!grouped[dayKey]) {
+      grouped[dayKey] = [];
+    }
+    grouped[dayKey].push(teeTime);
+  });
+
+  // Sort days chronologically
+  const sortedDays = Object.keys(grouped).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime()
+  );
+
+  return sortedDays.map((day) => ({
+    date: day,
+    teeTimes: grouped[day],
+  }));
+}
+
 type WeekendSectionProps = {
   weekendId: string;
   weekend: {
@@ -56,17 +78,21 @@ export default function WeekendSection({
     weekend.end_date
   );
 
+  const groupedByDay = groupTeeTimesByDay(teeTimes);
+
   return (
     <View key={weekendId} style={styles.weekendSection}>
       {relativeLabel && (
         <Text style={styles.weekendHeader}>{relativeLabel}</Text>
       )}
-      <Text style={styles.weekendDates}>
-        {formatDate(weekend.start_date)} - {formatDate(weekend.end_date)}
-      </Text>
-      {teeTimes.length > 0 ? (
-        teeTimes.map((teeTime) => (
-          <TeeTimeCard key={teeTime.id} teeTime={teeTime} />
+      {groupedByDay.length > 0 ? (
+        groupedByDay.map((dayGroup) => (
+          <View key={dayGroup.date} style={styles.dayGroup}>
+            <Text style={styles.dayHeader}>{formatDate(dayGroup.date)}</Text>
+            {dayGroup.teeTimes.map((teeTime) => (
+              <TeeTimeCard key={teeTime.id} teeTime={teeTime} />
+            ))}
+          </View>
         ))
       ) : (
         <View style={styles.noTeeTimesCard}>
@@ -88,10 +114,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 4,
   },
-  weekendDates: {
+  dayGroup: {
+    marginBottom: 16,
+  },
+  dayHeader: {
     fontSize: 14,
+    fontWeight: "600",
     color: "#64748b",
-    marginBottom: 12,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
   noTeeTimesCard: {
