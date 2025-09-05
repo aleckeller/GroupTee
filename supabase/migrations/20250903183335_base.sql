@@ -23,6 +23,7 @@ create table if not exists memberships (
 
 create table if not exists weekends (
   id uuid primary key default gen_random_uuid(),
+  -- REMOVE NAME COLUMN
   name text not null,
   start_date date not null,
   end_date date not null,
@@ -35,6 +36,7 @@ create table if not exists tee_times (
   tee_date date not null,
   tee_time time not null,
   group_id uuid references groups(id) on delete cascade,
+  max_players integer default 4,
   created_at timestamp with time zone default now()
 );
 
@@ -54,7 +56,6 @@ create table if not exists assignments (
   weekend_id uuid references weekends(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
   tee_time_id uuid references tee_times(id) on delete cascade,
-  group_label text,
   created_at timestamp with time zone default now()
 );
 

@@ -223,10 +223,52 @@ def generate_seed_content(created_users):
     # Create mapping for easy lookup
     id_mapping = {user["expected_id"]: user["actual_id"] for user in created_users}
 
+    # Calculate dynamic weekend dates
+    from datetime import datetime, timedelta
+    
+    today = datetime.now()
+    
+    # Find the next Saturday (this weekend)
+    days_until_saturday = (5 - today.weekday()) % 7
+    if days_until_saturday == 0 and today.weekday() != 5:  # If today is not Saturday, get next Saturday
+        days_until_saturday = 7
+    
+    this_weekend_start = today + timedelta(days=days_until_saturday)
+    this_weekend_end = this_weekend_start + timedelta(days=1)
+    
+    # Next weekend
+    next_weekend_start = this_weekend_start + timedelta(days=7)
+    next_weekend_end = next_weekend_start + timedelta(days=1)
+    
+    # Weekend after next (for upcoming weekends section)
+    weekend_after_next_start = this_weekend_start + timedelta(days=14)
+    weekend_after_next_end = weekend_after_next_start + timedelta(days=1)
+    
+    # Weekend in a month
+    weekend_month_start = this_weekend_start + timedelta(days=28)
+    weekend_month_end = weekend_month_start + timedelta(days=1)
+    
+    # Weekend without tee times (for testing)
+    weekend_no_tee_times_start = this_weekend_start + timedelta(days=35)
+    weekend_no_tee_times_end = weekend_no_tee_times_start + timedelta(days=1)
+    
+    # Format dates as strings
+    this_weekend_start_str = this_weekend_start.strftime('%Y-%m-%d')
+    this_weekend_end_str = this_weekend_end.strftime('%Y-%m-%d')
+    next_weekend_start_str = next_weekend_start.strftime('%Y-%m-%d')
+    next_weekend_end_str = next_weekend_end.strftime('%Y-%m-%d')
+    weekend_after_next_start_str = weekend_after_next_start.strftime('%Y-%m-%d')
+    weekend_after_next_end_str = weekend_after_next_end.strftime('%Y-%m-%d')
+    weekend_month_start_str = weekend_month_start.strftime('%Y-%m-%d')
+    weekend_month_end_str = weekend_month_end.strftime('%Y-%m-%d')
+    weekend_no_tee_times_start_str = weekend_no_tee_times_start.strftime('%Y-%m-%d')
+    weekend_no_tee_times_end_str = weekend_no_tee_times_end.strftime('%Y-%m-%d')
+
     # Start building the seed content
-    content = """-- Seed data for Golf Weekend Tee Times App
+    content = f"""-- Seed data for Golf Weekend Tee Times App
 -- This file populates the database with sample data for testing
 -- Generated automatically with actual user IDs from auth.users
+-- Weekend dates calculated dynamically: This Weekend ({this_weekend_start_str}), Next Weekend ({next_weekend_start_str}), Weekend After Next ({weekend_after_next_start_str}), Weekend in Month ({weekend_month_start_str}), Weekend No Tee Times ({weekend_no_tee_times_start_str})
 
 -- Temporarily disable foreign key constraints for testing
 -- WARNING: This is only for development/testing purposes
@@ -239,36 +281,53 @@ INSERT INTO groups (id, name) VALUES
   ('550e8400-e29b-41d4-a716-446655440003', 'Group C'),
   ('550e8400-e29b-41d4-a716-446655440004', 'Group D');
 
--- Insert sample weekends
+-- Insert sample weekends (dynamic dates for relative weekend labels)
 INSERT INTO weekends (id, name, start_date, end_date) VALUES
-  ('550e8400-e29b-41d4-a716-446655440010', 'Spring Golf Weekend', '2024-04-20', '2024-04-21'),
-  ('550e8400-e29b-41d4-a716-446655440011', 'Summer Championship', '2024-06-15', '2024-06-16'),
-  ('550e8400-e29b-41d4-a716-446655440012', 'Fall Classic', '2024-09-14', '2024-09-15');
+  ('550e8400-e29b-41d4-a716-446655440010', 'This Weekend', '{this_weekend_start_str}', '{this_weekend_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440011', 'Next Weekend', '{next_weekend_start_str}', '{next_weekend_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440012', 'Weekend After Next', '{weekend_after_next_start_str}', '{weekend_after_next_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440013', 'Weekend in Month', '{weekend_month_start_str}', '{weekend_month_end_str}'),
+  ('550e8400-e29b-41d4-a716-446655440014', 'Weekend No Tee Times', '{weekend_no_tee_times_start_str}', '{weekend_no_tee_times_end_str}');
 
--- Insert sample tee times for Spring Golf Weekend
-INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id) VALUES
-  ('550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', '2024-04-20', '08:00:00', '550e8400-e29b-41d4-a716-446655440001'),
-  ('550e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440010', '2024-04-20', '08:10:00', '550e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440022', '550e8400-e29b-41d4-a716-446655440010', '2024-04-20', '08:20:00', '550e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440023', '550e8400-e29b-41d4-a716-446655440010', '2024-04-20', '08:30:00', '550e8400-e29b-41d4-a716-446655440004'),
-  ('550e8400-e29b-41d4-a716-446655440024', '550e8400-e29b-41d4-a716-446655440010', '2024-04-21', '08:00:00', '550e8400-e29b-41d4-a716-446655440001'),
-  ('550e8400-e29b-41d4-a716-446655440025', '550e8400-e29b-41d4-a716-446655440010', '2024-04-21', '08:10:00', '550e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440026', '550e8400-e29b-41d4-a716-446655440010', '2024-04-21', '08:20:00', '550e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440027', '550e8400-e29b-41d4-a716-446655440010', '2024-04-21', '08:30:00', '550e8400-e29b-41d4-a716-446655440004');
+-- Insert sample tee times for This Weekend
+INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players) VALUES
+  ('550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_start_str}', '08:00:00', '550e8400-e29b-41d4-a716-446655440001', 3),
+  ('550e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_start_str}', '08:10:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440022', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_start_str}', '08:20:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440023', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_start_str}', '08:30:00', '550e8400-e29b-41d4-a716-446655440004', 4),
+  ('550e8400-e29b-41d4-a716-446655440024', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_end_str}', '08:00:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440025', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_end_str}', '08:10:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440026', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_end_str}', '08:20:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440027', '550e8400-e29b-41d4-a716-446655440010', '{this_weekend_end_str}', '08:30:00', '550e8400-e29b-41d4-a716-446655440004', 4);
 
--- Insert sample tee times for Summer Championship
-INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id) VALUES
-  ('550e8400-e29b-41d4-a716-446655440030', '550e8400-e29b-41d4-a716-446655440011', '2024-06-15', '07:30:00', '550e8400-e29b-41d4-a716-446655440001'),
-  ('550e8400-e29b-41d4-a716-446655440031', '550e8400-e29b-41d4-a716-446655440011', '2024-06-15', '07:45:00', '550e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440032', '550e8400-e29b-41d4-a716-446655440011', '2024-06-15', '08:00:00', '550e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440033', '550e8400-e29b-41d4-a716-446655440011', '2024-06-15', '08:15:00', '550e8400-e29b-41d4-a716-446655440004');
+-- Insert sample tee times for Next Weekend
+INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players) VALUES
+  ('550e8400-e29b-41d4-a716-446655440030', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_start_str}', '07:30:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440031', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_start_str}', '07:45:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440032', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_start_str}', '08:00:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440033', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_start_str}', '08:15:00', '550e8400-e29b-41d4-a716-446655440004', 4),
+  ('550e8400-e29b-41d4-a716-446655440034', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_end_str}', '08:00:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440035', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_end_str}', '08:15:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440036', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_end_str}', '08:30:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440037', '550e8400-e29b-41d4-a716-446655440011', '{next_weekend_end_str}', '08:45:00', '550e8400-e29b-41d4-a716-446655440004', 4);
 
--- Insert sample tee times for Fall Classic
-INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id) VALUES
-  ('550e8400-e29b-41d4-a716-446655440040', '550e8400-e29b-41d4-a716-446655440012', '2024-09-14', '08:30:00', '550e8400-e29b-41d4-a716-446655440001'),
-  ('550e8400-e29b-41d4-a716-446655440041', '550e8400-e29b-41d4-a716-446655440012', '2024-09-14', '08:45:00', '550e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440042', '550e8400-e29b-41d4-a716-446655440012', '2024-09-14', '09:00:00', '550e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440043', '550e8400-e29b-41d4-a716-446655440012', '2024-09-14', '09:15:00', '550e8400-e29b-41d4-a716-446655440004');
+-- Insert sample tee times for Weekend After Next
+INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players) VALUES
+  ('550e8400-e29b-41d4-a716-446655440040', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_start_str}', '08:30:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440041', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_start_str}', '08:45:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440042', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_start_str}', '09:00:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440043', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_start_str}', '09:15:00', '550e8400-e29b-41d4-a716-446655440004', 4),
+  ('550e8400-e29b-41d4-a716-446655440044', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_end_str}', '08:30:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440045', '550e8400-e29b-41d4-a716-446655440012', '{weekend_after_next_end_str}', '08:45:00', '550e8400-e29b-41d4-a716-446655440002', 4);
+
+-- Insert sample tee times for Weekend in Month
+INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players) VALUES
+  ('550e8400-e29b-41d4-a716-446655440050', '550e8400-e29b-41d4-a716-446655440013', '{weekend_month_start_str}', '09:00:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440051', '550e8400-e29b-41d4-a716-446655440013', '{weekend_month_start_str}', '09:15:00', '550e8400-e29b-41d4-a716-446655440002', 4),
+  ('550e8400-e29b-41d4-a716-446655440052', '550e8400-e29b-41d4-a716-446655440013', '{weekend_month_start_str}', '09:30:00', '550e8400-e29b-41d4-a716-446655440003', 4),
+  ('550e8400-e29b-41d4-a716-446655440053', '550e8400-e29b-41d4-a716-446655440013', '{weekend_month_end_str}', '09:00:00', '550e8400-e29b-41d4-a716-446655440001', 4),
+  ('550e8400-e29b-41d4-a716-446655440054', '550e8400-e29b-41d4-a716-446655440013', '{weekend_month_end_str}', '09:15:00', '550e8400-e29b-41d4-a716-446655440002', 4);
+
 
 -- Note: Profiles are automatically created via database trigger when users are created in auth.users
 -- No need to manually insert profiles here
@@ -428,36 +487,123 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id) VALUES
 
     # Add assignments
     content += "-- Insert sample assignments for member users\n"
-    content += "INSERT INTO assignments (id, weekend_id, user_id, tee_time_id, group_label) VALUES\n"
+    content += "INSERT INTO assignments (id, weekend_id, user_id, tee_time_id) VALUES\n"
 
     assignments = [
+        # Group A assignments (This Weekend - Saturday 8:00 AM)
         (
             "550e8400-e29b-41d4-a716-446655440400",
             "550e8400-e29b-41d4-a716-446655440010",
             "550e8400-e29b-41d4-a716-446655440102",
             "550e8400-e29b-41d4-a716-446655440020",
-            "A",
         ),
+        (
+            "550e8400-e29b-41d4-a716-446655440404",
+            "550e8400-e29b-41d4-a716-446655440010",
+            "550e8400-e29b-41d4-a716-446655440100",
+            "550e8400-e29b-41d4-a716-446655440020",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440405",
+            "550e8400-e29b-41d4-a716-446655440010",
+            "550e8400-e29b-41d4-a716-446655440106",
+            "550e8400-e29b-41d4-a716-446655440020",
+        ),
+        # Group A assignments (This Weekend - Sunday 8:00 AM)
+        (
+            "550e8400-e29b-41d4-a716-446655440406",
+            "550e8400-e29b-41d4-a716-446655440010",
+            "550e8400-e29b-41d4-a716-446655440102",
+            "550e8400-e29b-41d4-a716-446655440024",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440407",
+            "550e8400-e29b-41d4-a716-446655440010",
+            "550e8400-e29b-41d4-a716-446655440107",
+            "550e8400-e29b-41d4-a716-446655440024",
+        ),
+        # Group A assignments (Next Weekend - Saturday 7:30 AM)
+        (
+            "550e8400-e29b-41d4-a716-446655440408",
+            "550e8400-e29b-41d4-a716-446655440011",
+            "550e8400-e29b-41d4-a716-446655440100",
+            "550e8400-e29b-41d4-a716-446655440030",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440409",
+            "550e8400-e29b-41d4-a716-446655440011",
+            "550e8400-e29b-41d4-a716-446655440102",
+            "550e8400-e29b-41d4-a716-446655440030",
+        ),
+        # Other group assignments (This Weekend)
         (
             "550e8400-e29b-41d4-a716-446655440401",
             "550e8400-e29b-41d4-a716-446655440010",
             "550e8400-e29b-41d4-a716-446655440103",
             "550e8400-e29b-41d4-a716-446655440021",
-            "B",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440402",
             "550e8400-e29b-41d4-a716-446655440010",
             "550e8400-e29b-41d4-a716-446655440104",
             "550e8400-e29b-41d4-a716-446655440022",
-            "C",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440403",
             "550e8400-e29b-41d4-a716-446655440010",
             "550e8400-e29b-41d4-a716-446655440105",
             "550e8400-e29b-41d4-a716-446655440023",
-            "D",
+        ),
+        # Next Weekend assignments
+        (
+            "550e8400-e29b-41d4-a716-446655440412",
+            "550e8400-e29b-41d4-a716-446655440011",
+            "550e8400-e29b-41d4-a716-446655440103",
+            "550e8400-e29b-41d4-a716-446655440031",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440413",
+            "550e8400-e29b-41d4-a716-446655440011",
+            "550e8400-e29b-41d4-a716-446655440104",
+            "550e8400-e29b-41d4-a716-446655440032",
+        ),
+        # Weekend After Next assignments
+        (
+            "550e8400-e29b-41d4-a716-446655440414",
+            "550e8400-e29b-41d4-a716-446655440012",
+            "550e8400-e29b-41d4-a716-446655440100",
+            "550e8400-e29b-41d4-a716-446655440040",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440415",
+            "550e8400-e29b-41d4-a716-446655440012",
+            "550e8400-e29b-41d4-a716-446655440102",
+            "550e8400-e29b-41d4-a716-446655440040",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440416",
+            "550e8400-e29b-41d4-a716-446655440012",
+            "550e8400-e29b-41d4-a716-446655440103",
+            "550e8400-e29b-41d4-a716-446655440041",
+        ),
+        # Weekend in Month assignments
+        (
+            "550e8400-e29b-41d4-a716-446655440417",
+            "550e8400-e29b-41d4-a716-446655440013",
+            "550e8400-e29b-41d4-a716-446655440100",
+            "550e8400-e29b-41d4-a716-446655440050",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440418",
+            "550e8400-e29b-41d4-a716-446655440013",
+            "550e8400-e29b-41d4-a716-446655440104",
+            "550e8400-e29b-41d4-a716-446655440050",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440419",
+            "550e8400-e29b-41d4-a716-446655440013",
+            "550e8400-e29b-41d4-a716-446655440105",
+            "550e8400-e29b-41d4-a716-446655440051",
         ),
     ]
 
@@ -467,12 +613,11 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id) VALUES
         weekend_id,
         expected_user_id,
         tee_time_id,
-        group_label,
     ) in assignments:
         if expected_user_id in id_mapping:
             actual_user_id = id_mapping[expected_user_id]
             assignment_lines.append(
-                f"  ('{assignment_id}', '{weekend_id}', '{actual_user_id}', '{tee_time_id}', '{group_label}')"
+                f"  ('{assignment_id}', '{weekend_id}', '{actual_user_id}', '{tee_time_id}')"
             )
 
     if assignment_lines:
