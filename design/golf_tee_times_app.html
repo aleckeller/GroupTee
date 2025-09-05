@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Weekend Tee Times - App Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .screen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .screen {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .screen:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.3);
+        }
+        
+        .screen-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .screen-header h2 {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+        
+        .screen-header .user-type {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+        
+        .admin-header { background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%); }
+        .member-header { background: linear-gradient(135deg, #4ECDC4 0%, #44a08d 100%); }
+        .guest-header { background: linear-gradient(135deg, #95A5A6 0%, #7f8c8d 100%); }
+        
+        .screen-content {
+            padding: 25px;
+            min-height: 500px;
+        }
+        
+        .nav-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .nav-item {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #4CAF50;
+            color: white;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        
+        .nav-item.active {
+            background: #2E7D32;
+        }
+        
+        .tee-time-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%);
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .tee-time-card:hover {
+            border-color: #4CAF50;
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2);
+        }
+        
+        .tee-time-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .time-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .available { background: #d4edda; color: #155724; }
+        .full { background: #f8d7da; color: #721c24; }
+        .pending { background: #fff3cd; color: #856404; }
+        
+        .player-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .player {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            font-size: 0.9em;
+        }
+        
+        .empty-slot {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            color: #6c757d;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .trade-card {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+            border: 2px solid #FF9800;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .trade-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: #FF9800;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #2196F3;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1976D2;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #424242;
+            margin-top: 5px;
+        }
+        
+        .notification-bar {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .notification-icon {
+            font-size: 1.5em;
+        }
+        
+        @media (max-width: 768px) {
+            .screen-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .player-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⛳ Golf Weekend Tee Times</h1>
+            <p>Streamlined golf group management system</p>
+        </div>
+        
+        <div class="screen-grid">
+            <!-- Admin Dashboard -->
+            <div class="screen">
+                <div class="screen-header admin-header">
+                    <h2>Admin Dashboard</h2>
+                    <div class="user-type">Administrator</div>
+                </div>
+                <div class="nav-bar">
+                    <div class="nav-item active">Dashboard</div>
+                    <div class="nav-item">Groups</div>
+                    <div class="nav-item">Trades</div>
+                    <div class="nav-item">Reports</div>
+                </div>
+                <div class="screen-content">
+                    <div class="notification-bar">
+                        <span class="notification-icon">🔔</span>
+                        <div>
+                            <strong>New Trade Request:</strong> Sunrise Group wants to trade 8:00 AM Sunday for your 7:30 AM Saturday
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-number">24</span>
+                            <div class="stat-label">Active Members</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">8</span>
+                            <div class="stat-label">Tee Times</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">3</span>
+                            <div class="stat-label">Trade Offers</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">18</span>
+                            <div class="stat-label">This Week's Players</div>
+                        </div>
+                    </div>
+                    
+                    <h3>Weekend Tee Times - March 15-16</h3>
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">Saturday 7:30 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 1</div>
+                            </div>
+                            <div class="status-badge full">Full</div>
+                        </div>
+                        <div class="player-list">
+                            <div class="player">👤 Mike Johnson</div>
+                            <div class="player">👤 Sarah Davis</div>
+                            <div class="player">👤 Tom Wilson</div>
+                            <div class="player">👤 Lisa Brown</div>
+                        </div>
+                    </div>
+                    
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">Sunday 8:15 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 10</div>
+                            </div>
+                            <div class="status-badge available">2 Spots</div>
+                        </div>
+                        <div class="player-list">
+                            <div class="player">👤 Alex Chen</div>
+                            <div class="player">👤 David Miller</div>
+                            <div class="empty-slot">Available</div>
+                            <div class="empty-slot">Available</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Member Interest Form -->
+            <div class="screen">
+                <div class="screen-header member-header">
+                    <h2>Submit Interest</h2>
+                    <div class="user-type">Member</div>
+                </div>
+                <div class="screen-content">
+                    <h3>Weekend of March 15-16, 2025</h3>
+                    <form>
+                        <div class="form-group">
+                            <label>Your Name</label>
+                            <input type="text" value="Mike Johnson" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Availability</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="sat-early" checked>
+                                    <label for="sat-early">Saturday Early (7:00-9:00 AM)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="sat-late">
+                                    <label for="sat-late">Saturday Late (10:00 AM+)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="sun-early" checked>
+                                    <label for="sun-early">Sunday Early (7:00-9:00 AM)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="sun-late">
+                                    <label for="sun-late">Sunday Late (10:00 AM+)</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Preferred Playing Partners</label>
+                            <input type="text" placeholder="Enter names (optional)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Game Type Preference</label>
+                            <select>
+                                <option>Best Ball</option>
+                                <option>Stroke Play</option>
+                                <option>Scramble</option>
+                                <option>Match Play</option>
+                                <option>No Preference</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Additional Notes</label>
+                            <textarea rows="3" placeholder="Any special requests or notes..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Interest</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Trade Management -->
+            <div class="screen">
+                <div class="screen-header admin-header">
+                    <h2>Trade Management</h2>
+                    <div class="user-type">Administrator</div>
+                </div>
+                <div class="screen-content">
+                    <h3>Active Trade Offers</h3>
+                    
+                    <div class="trade-card">
+                        <div class="trade-badge">INCOMING</div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>From: Sunrise Golf Group</strong><br>
+                            Contact: Jim Peterson (555-0123)
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: center;">
+                            <div style="background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                                <strong>They Offer:</strong><br>
+                                Sunday 8:00 AM<br>
+                                Hole 1 (4 players)
+                            </div>
+                            <div style="font-size: 1.5em;">⇄</div>
+                            <div style="background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                                <strong>They Want:</strong><br>
+                                Saturday 7:30 AM<br>
+                                Hole 1 (4 players)
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn btn-primary">Accept Trade</button>
+                            <button class="btn btn-secondary">Counter Offer</button>
+                            <button class="btn btn-danger">Decline</button>
+                        </div>
+                    </div>
+                    
+                    <div class="trade-card">
+                        <div class="trade-badge">OUTGOING</div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>To: Eagle Ridge Group</strong><br>
+                            Status: Pending Response
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: center;">
+                            <div style="background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                                <strong>We Offer:</strong><br>
+                                Sunday 9:15 AM<br>
+                                Hole 10 (4 players)
+                            </div>
+                            <div style="font-size: 1.5em;">⇄</div>
+                            <div style="background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                                <strong>We Want:</strong><br>
+                                Saturday 8:45 AM<br>
+                                Hole 1 (4 players)
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn btn-secondary">Modify Offer</button>
+                            <button class="btn btn-danger">Cancel</button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">+ Create New Trade Offer</button>
+                </div>
+            </div>
+            
+            <!-- Member Dashboard -->
+            <div class="screen">
+                <div class="screen-header member-header">
+                    <h2>My Tee Times</h2>
+                    <div class="user-type">Member</div>
+                </div>
+                <div class="nav-bar">
+                    <div class="nav-item active">This Week</div>
+                    <div class="nav-item">History</div>
+                    <div class="nav-item">Stats</div>
+                </div>
+                <div class="screen-content">
+                    <div class="notification-bar">
+                        <span class="notification-icon">✅</span>
+                        <div>
+                            <strong>Great news!</strong> You've been assigned to Saturday 7:30 AM tee time
+                        </div>
+                    </div>
+                    
+                    <h3>Your Assignment - March 15-16</h3>
+                    
+                    <div class="tee-time-card" style="border-color: #4CAF50; background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 50%);">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">Saturday 7:30 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 1 - You're Playing!</div>
+                            </div>
+                            <div class="status-badge full">Confirmed</div>
+                        </div>
+                        <div class="player-list">
+                            <div class="player" style="border-left-color: #FF9800;">👤 You (Mike Johnson)</div>
+                            <div class="player">👤 Sarah Davis</div>
+                            <div class="player">👤 Tom Wilson</div>
+                            <div class="player">👤 Lisa Brown</div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 10px;">
+                            <strong>Game Format:</strong> Best Ball<br>
+                            <strong>Notes:</strong> Bring extra balls - winds expected!
+                        </div>
+                    </div>
+                    
+                    <h3>Other Group Times This Weekend</h3>
+                    
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge" style="background: #6c757d;">Sunday 8:15 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 10</div>
+                            </div>
+                            <div class="status-badge available">2 Spots</div>
+                        </div>
+                        <div class="player-list">
+                            <div class="player">👤 Alex Chen</div>
+                            <div class="player">👤 David Miller</div>
+                            <div class="empty-slot">Available</div>
+                            <div class="empty-slot">Available</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-primary">Submit Next Week's Interest</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guest View -->
+            <div class="screen">
+                <div class="screen-header guest-header">
+                    <h2>Group Schedule</h2>
+                    <div class="user-type">Guest View</div>
+                </div>
+                <div class="screen-content">
+                    <h3>Westfield Golf Group - March 15-16</h3>
+                    <p style="color: #6c757d; margin-bottom: 20px;">Public view of scheduled tee times</p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4>📅 Saturday, March 15, 2025</h4>
+                    </div>
+                    
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">7:30 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 1</div>
+                            </div>
+                            <div class="status-badge full">4/4 Players</div>
+                        </div>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; text-align: center; color: #6c757d;">
+                            Players confirmed - Group is full
+                        </div>
+                    </div>
+                    
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">8:45 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 10</div>
+                            </div>
+                            <div class="status-badge full">4/4 Players</div>
+                        </div>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 8px; margin-top: 10px; text-align: center; color: #6c757d;">
+                            Players confirmed - Group is full
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                        <h4>📅 Sunday, March 16, 2025</h4>
+                    </div>
+                    
+                    <div class="tee-time-card">
+                        <div class="tee-time-header">
+                            <div>
+                                <div class="time-badge">8:15 AM</div>
+                                <div style="margin-top: 5px; font-weight: bold;">Hole 10</div>
+                            </div>
+                            <div class="status-badge available">2/4 Players</div>
+                        </div>
+                        <div style="padding: 10px; background: #fff3cd; border-radius: 8px; margin-top: 10px; text-align: center; color: #856404;">
+                            2 spots still available - Contact group admin
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px; padding: 20px; background: #e3f2fd; border-radius: 15px;">
+                        <p style="margin-bottom: 15px;"><strong>Interested in joining our group?</strong></p>
+                        <button class="btn btn-primary">Contact Group Admin</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Setup/Configuration -->
+            <div class="screen">
+                <div class="screen-header admin-header">
+                    <h2>Group Setup</h2>
+                    <div class="user-type">Administrator</div>
+                </div>
+                <div class="screen-content">
+                    <h3>Weekend Configuration</h3>
+                    
+                    <form>
+                        <div class="form-group">
+                            <label>Group Name</label>
+                            <input type="text" value="Westfield Golf Group">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Weekend Date</label>
+                            <input type="date" value="2025-03-15">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Interest Submission Deadline</label>
+                            <input type="datetime-local" value="2025-03-12T23:59">
+                        </div>
+                        
+                        <h4 style="margin: 25px 0 15px 0;">Tee Times Won This Week</h4>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 15px;">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                                <h5>Saturday Times</h5>
+                                <button type="button" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8em;">+ Add Time</button>
+                            </div>
+                            
+                            <div style="display: grid; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 15px; background: white; padding: 15px; border-radius: 10px;">
+                                    <input type="time" value="07:30">
+                                    <select>
+                                        <option>Hole 1</option>
+                                        <option>Hole 10</option>
+                                    </select>
+                                    <select>
+                                        <option>4 Players</option>
+                                        <option>3 Players</option>
+                                        <option>2 Players</option>
+                                    </select>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;">Remove</button>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 15px; background: white; padding: 15px; border-radius: 10px;">
+                                    <input type="time" value="08:45">
+                                    <select>
+                                        <option>Hole 10</option>
+                                        <option>Hole 1</option>
+                                    </select>
+                                    <select>
+                                        <option>4 Players</option>
+                                        <option>3 Players</option>
+                                        <option>2 Players</option>
+                                    </select>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-top: 20px;">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                                <h5>Sunday Times</h5>
+                                <button type="button" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8em;">+ Add Time</button>
+                            </div>
+                            
+                            <div style="display: grid; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 15px; background: white; padding: 15px; border-radius: 10px;">
+                                    <input type="time" value="08:15">
+                                    <select>
+                                        <option>Hole 10</option>
+                                        <option>Hole 1</option>
+                                    </select>
+                                    <select>
+                                        <option>4 Players</option>
+                                        <option>3 Players</option>
+                                        <option>2 Players</option>
+                                    </select>
+                                    <button type="button" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 25px;">
+                            <label>Auto-Assignment Settings</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="auto-assign" checked>
+                                    <label for="auto-assign">Auto-assign players after deadline</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="respect-partners">
+                                    <label for="respect-partners">Respect partner preferences when possible</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="rotation">
+                                    <label for="rotation">Use rotation system for fairness</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Save Weekend Configuration</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature Overview -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 30px; margin-top: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+            <h2 style="text-align: center; color: #333; margin-bottom: 30px;">🏌️ Key Features Overview</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
+                <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); padding: 25px; border-radius: 15px; border: 2px solid #4CAF50;">
+                    <h3 style="color: #2E7D32; margin-bottom: 15px;">📋 Interest Management</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Easy member signup forms</li>
+                        <li>Time preference selection</li>
+                        <li>Partner requests</li>
+                        <li>Automated deadline tracking</li>
+                        <li>Game format preferences</li>
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); padding: 25px; border-radius: 15px; border: 2px solid #FF9800;">
+                    <h3 style="color: #F57C00; margin-bottom: 15px;">🔄 Trade System</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Inter-group tee time trading</li>
+                        <li>Trade request management</li>
+                        <li>Counter-offer functionality</li>
+                        <li>Contact information sharing</li>
+                        <li>Trade history tracking</li>
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 25px; border-radius: 15px; border: 2px solid #2196F3;">
+                    <h3 style="color: #1976D2; margin-bottom: 15px;">⚡ Smart Assignment</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Automated player placement</li>
+                        <li>Preference-based matching</li>
+                        <li>Rotation system for fairness</li>
+                        <li>Partner request fulfillment</li>
+                        <li>Conflict resolution</li>
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); padding: 25px; border-radius: 15px; border: 2px solid #9C27B0;">
+                    <h3 style="color: #7B1FA2; margin-bottom: 15px;">👥 User Management</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Three user levels (Admin/Member/Guest)</li>
+                        <li>Group member management</li>
+                        <li>Permission-based access</li>
+                        <li>Guest viewing capabilities</li>
+                        <li>Contact information</li>
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); padding: 25px; border-radius: 15px; border: 2px solid #f44336;">
+                    <h3 style="color: #D32F2F; margin-bottom: 15px;">📊 Analytics & Reports</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Participation statistics</li>
+                        <li>Member activity tracking</li>
+                        <li>Tee time utilization</li>
+                        <li>Trade success rates</li>
+                        <li>Historical data</li>
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #F1F8E9 0%, #DCEDC8 100%); padding: 25px; border-radius: 15px; border: 2px solid #689F38;">
+                    <h3 style="color: #558B2F; margin-bottom: 15px;">🔔 Notifications</h3>
+                    <ul style="color: #424242; line-height: 1.6;">
+                        <li>Assignment confirmations</li>
+                        <li>Trade request alerts</li>
+                        <li>Deadline reminders</li>
+                        <li>Group announcements</li>
+                        <li>Weather updates</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; text-align: center;">
+                <h3 style="margin-bottom: 10px;">🚀 Ready to Transform Your Golf Group Management?</h3>
+                <p>This system eliminates the hassle of Excel sheets, group texts, and manual coordination - bringing everything into one streamlined platform.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
