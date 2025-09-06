@@ -141,7 +141,9 @@ using (
   )
 );
 create policy "Authenticated read" on trades for select to authenticated using (true);
-create policy "Authenticated read" on notifications for select to authenticated using (true);
+create policy "Users can read their own notifications" on notifications for select to authenticated using (auth.uid() = user_id);
+create policy "Users can update their own notifications" on notifications for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can delete their own notifications" on notifications for delete to authenticated using (auth.uid() = user_id);
 
 -- Function to handle new user signup
 create or replace function public.handle_new_user()
@@ -162,3 +164,86 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Function to create notification when user is added to tee time
+create or replace function public.notify_tee_time_assignment()
+returns trigger as $$
+declare
+  tee_time_info record;
+  message text;
+begin
+  -- Get tee time details
+  select 
+    tt.tee_date,
+    tt.tee_time,
+    w.start_date,
+    w.end_date
+  into tee_time_info
+  from tee_times tt
+  join weekends w on tt.weekend_id = w.id
+  where tt.id = new.tee_time_id;
+  
+  -- Create notification message
+  message := 'You have been added to a tee time on ' || 
+             to_char(tee_time_info.tee_date, 'Mon DD, YYYY') || 
+             ' at ' || 
+             to_char(tee_time_info.tee_time, 'HH24:MI') || 
+             ' for the weekend of ' ||
+             to_char(tee_time_info.start_date, 'Mon DD') || 
+             ' - ' || 
+             to_char(tee_time_info.end_date, 'Mon DD, YYYY');
+  
+  -- Insert notification
+  insert into notifications (user_id, message)
+  values (new.user_id, message);
+  
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Function to create notification when user is removed from tee time
+create or replace function public.notify_tee_time_removal()
+returns trigger as $$
+declare
+  tee_time_info record;
+  message text;
+begin
+  -- Get tee time details
+  select 
+    tt.tee_date,
+    tt.tee_time,
+    w.start_date,
+    w.end_date
+  into tee_time_info
+  from tee_times tt
+  join weekends w on tt.weekend_id = w.id
+  where tt.id = old.tee_time_id;
+  
+  -- Create notification message
+  message := 'You have been removed from a tee time on ' || 
+             to_char(tee_time_info.tee_date, 'Mon DD, YYYY') || 
+             ' at ' || 
+             to_char(tee_time_info.tee_time, 'HH24:MI') || 
+             ' for the weekend of ' ||
+             to_char(tee_time_info.start_date, 'Mon DD') || 
+             ' - ' || 
+             to_char(tee_time_info.end_date, 'Mon DD, YYYY');
+  
+  -- Insert notification
+  insert into notifications (user_id, message)
+  values (old.user_id, message);
+  
+  return old;
+end;
+$$ language plpgsql security definer;
+
+-- Triggers for assignment notifications
+drop trigger if exists on_assignment_created on assignments;
+create trigger on_assignment_created
+  after insert on assignments
+  for each row execute procedure public.notify_tee_time_assignment();
+
+drop trigger if exists on_assignment_deleted on assignments;
+create trigger on_assignment_deleted
+  after delete on assignments
+  for each row execute procedure public.notify_tee_time_removal();

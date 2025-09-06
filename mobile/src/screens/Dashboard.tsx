@@ -14,14 +14,17 @@ import { useStats } from "@/hooks/useStats";
 import { useTeeTimes } from "@/hooks/useTeeTimes";
 import { useMyTeeTimes } from "@/hooks/useMyTeeTimes";
 import { useWeekends } from "@/hooks/useWeekends";
+import { useNotifications } from "@/hooks/useNotifications";
 import { groupTeeTimesByWeekend } from "@/utils/teeTimeUtils";
 import StatsCard from "@/components/StatsCard";
 import WeekendSection from "@/components/WeekendSection";
+import NotificationCard from "@/components/NotificationCard";
 
 export default function Dashboard() {
   const { user, userProfile } = useAuth();
   const { selectedGroup } = useGroup();
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
+  const [notificationsDeleted, setNotificationsDeleted] = useState(false);
   const {
     stats,
     loading: statsLoading,
@@ -42,29 +45,59 @@ export default function Dashboard() {
     loading: myTeeTimesLoading,
     refresh: refreshMyTeeTimes,
   } = useMyTeeTimes(user?.id || null);
+  const {
+    notifications,
+    loading: notificationsLoading,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refresh: refreshNotifications,
+  } = useNotifications(user?.id || null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Refresh all data when the screen comes into focus
+  // Track when notifications are modified to prevent unnecessary refreshes
+  const handleDeleteNotification = (notificationId: string) => {
+    setNotificationsDeleted(true);
+    deleteNotification(notificationId);
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotificationsDeleted(true);
+    markAllAsRead();
+  };
+
+  // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Only refresh if we have a selected group
       if (selectedGroup?.id) {
         refreshTeeTimes();
         refreshMyTeeTimes();
       }
-    }, [selectedGroup?.id, refreshTeeTimes, refreshMyTeeTimes])
+      // Only refresh notifications if none were deleted in this session
+      if (!notificationsDeleted) {
+        refreshNotifications();
+      }
+    }, [
+      selectedGroup?.id,
+      refreshTeeTimes,
+      refreshMyTeeTimes,
+      refreshNotifications,
+      notificationsDeleted,
+    ])
   );
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
+    setNotificationsDeleted(false); // Allow notifications refresh
     try {
-      // Refresh all data in parallel
       await Promise.all([
         refreshStats(),
         refreshTeeTimes(),
         refreshMyTeeTimes(),
         refreshWeekends(),
+        refreshNotifications(),
       ]);
     } catch (error) {
       console.error("Error refreshing data:", error);
@@ -100,10 +133,58 @@ export default function Dashboard() {
         loading={statsLoading}
       />
 
-      <Text style={styles.sectionTitle}>Notifications</Text>
-      <View style={styles.card}>
-        <Text>No new notifications</Text>
+      <View style={styles.notificationsHeader}>
+        <Text style={styles.sectionTitle}>Notifications</Text>
+        {unreadCount > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+          </View>
+        )}
+        {notifications.length > 0 && (
+          <Pressable
+            style={styles.markAllButton}
+            onPress={handleMarkAllAsRead}
+            disabled={unreadCount === 0}
+          >
+            <Text
+              style={[
+                styles.markAllText,
+                unreadCount === 0 && styles.markAllTextDisabled,
+              ]}
+            >
+              Mark all read
+            </Text>
+          </Pressable>
+        )}
       </View>
+
+      {notificationsLoading ? (
+        <View style={styles.card}>
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.emptyText}>No notifications</Text>
+        </View>
+      ) : (
+        <View style={styles.notificationsContainer}>
+          {notifications.slice(0, 5).map((notification) => (
+            <NotificationCard
+              key={notification.id}
+              notification={notification}
+              onPress={() => !notification.read && markAsRead(notification.id)}
+              onDelete={() => handleDeleteNotification(notification.id)}
+            />
+          ))}
+          {notifications.length > 5 && (
+            <View style={styles.moreNotifications}>
+              <Text style={styles.moreText}>
+                +{notifications.length - 5} more notifications
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <Text style={styles.sectionTitle}>Tee Times</Text>
       <View style={styles.tabContainer}>
@@ -235,6 +316,66 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 8,
     marginBottom: 6,
+  },
+  notificationsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  unreadBadge: {
+    backgroundColor: "#dc2626",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  markAllButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  markAllText: {
+    color: "#0ea5e9",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  markAllTextDisabled: {
+    color: "#94a3b8",
+  },
+  notificationsContainer: {
+    marginBottom: 10,
+  },
+  moreNotifications: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderStyle: "dashed",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  moreText: {
+    color: "#64748b",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  loadingText: {
+    color: "#64748b",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  emptyText: {
+    color: "#64748b",
+    fontSize: 14,
+    textAlign: "center",
+    fontStyle: "italic",
   },
   upcomingWeekendsHeader: {
     fontSize: 20,

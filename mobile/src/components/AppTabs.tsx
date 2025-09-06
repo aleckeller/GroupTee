@@ -1,8 +1,9 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Pressable, Text } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
+import { useNotifications } from "@/hooks/useNotifications";
 import SignOutButton from "./SignOutButton";
 import Dashboard from "@/screens/Dashboard";
 import InterestFormScreen from "@/screens/InterestFormScreen";
@@ -47,8 +48,9 @@ function GroupHeaderRight() {
 }
 
 function AppTabs() {
-  const { userProfile, loading } = useAuth();
+  const { userProfile, loading, user } = useAuth();
   const { selectedGroup } = useGroup();
+  const { unreadCount } = useNotifications(user?.id || null);
 
   // Show nothing while loading user profile
   if (loading || !userProfile) return null;
@@ -73,6 +75,41 @@ function AppTabs() {
   const tabs = getTabsForRole(userProfile.role);
   const headerTitle = selectedGroup.name;
 
+  const getTabBarIcon = (tabName: string) => {
+    if (tabName === "Dashboard" && unreadCount > 0) {
+      return (
+        <View style={{ position: "relative" }}>
+          <Text style={{ fontSize: 20 }}>🏠</Text>
+          <View
+            style={{
+              position: "absolute",
+              top: -2,
+              right: -8,
+              backgroundColor: "#dc2626",
+              borderRadius: 8,
+              minWidth: 16,
+              height: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 4,
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: "600",
+              }}
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+    return null;
+  };
+
   return (
     <Tabs.Navigator
       initialRouteName={tabs[0].name}
@@ -87,7 +124,10 @@ function AppTabs() {
           key={tab.name}
           name={tab.name}
           component={tab.component}
-          options={{ title: tab.title }}
+          options={{
+            title: tab.title,
+            tabBarIcon: () => getTabBarIcon(tab.name),
+          }}
         />
       ))}
     </Tabs.Navigator>
