@@ -5,20 +5,23 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
 import { useStats } from "@/hooks/useStats";
 import { useTeeTimes } from "@/hooks/useTeeTimes";
+import { useMyTeeTimes } from "@/hooks/useMyTeeTimes";
 import { useWeekends } from "@/hooks/useWeekends";
 import { groupTeeTimesByWeekend } from "@/utils/teeTimeUtils";
 import StatsCard from "@/components/StatsCard";
 import WeekendSection from "@/components/WeekendSection";
 
 export default function Dashboard() {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
   const { selectedGroup } = useGroup();
+  const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const {
     stats,
     loading: statsLoading,
@@ -34,6 +37,11 @@ export default function Dashboard() {
     loading: weekendsLoading,
     refresh: refreshWeekends,
   } = useWeekends();
+  const {
+    myTeeTimes,
+    loading: myTeeTimesLoading,
+    refresh: refreshMyTeeTimes,
+  } = useMyTeeTimes(user?.id || null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Refresh all data when the screen comes into focus
@@ -42,8 +50,9 @@ export default function Dashboard() {
       // Only refresh if we have a selected group
       if (selectedGroup?.id) {
         refreshTeeTimes();
+        refreshMyTeeTimes();
       }
-    }, [selectedGroup?.id])
+    }, [selectedGroup?.id, refreshTeeTimes, refreshMyTeeTimes])
   );
 
   // Pull-to-refresh handler
@@ -51,7 +60,12 @@ export default function Dashboard() {
     setRefreshing(true);
     try {
       // Refresh all data in parallel
-      await Promise.all([refreshStats(), refreshTeeTimes(), refreshWeekends()]);
+      await Promise.all([
+        refreshStats(),
+        refreshTeeTimes(),
+        refreshMyTeeTimes(),
+        refreshWeekends(),
+      ]);
     } catch (error) {
       console.error("Error refreshing data:", error);
     } finally {
@@ -92,13 +106,48 @@ export default function Dashboard() {
       </View>
 
       <Text style={styles.sectionTitle}>Tee Times</Text>
-      {weekendsLoading || teeTimesLoading ? (
+      <View style={styles.tabContainer}>
+        <Pressable
+          style={[
+            styles.tabButton,
+            viewMode === "all" && styles.tabButtonActive,
+          ]}
+          onPress={() => setViewMode("all")}
+        >
+          <Text
+            style={[styles.tabText, viewMode === "all" && styles.tabTextActive]}
+          >
+            All
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.tabButton,
+            viewMode === "my" && styles.tabButtonActive,
+          ]}
+          onPress={() => setViewMode("my")}
+        >
+          <Text
+            style={[styles.tabText, viewMode === "my" && styles.tabTextActive]}
+          >
+            My Times
+          </Text>
+        </Pressable>
+      </View>
+      {weekendsLoading ||
+      (viewMode === "all" ? teeTimesLoading : myTeeTimesLoading) ? (
         <View style={styles.card}>
           <Text>Loading weekends and tee times...</Text>
           <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
             Weekends: {weekendsLoading ? "loading" : "loaded"} | TeeTimes:{" "}
-            {teeTimesLoading ? "loading" : "loaded"} | Group:{" "}
-            {selectedGroup?.id ? "selected" : "none"}
+            {viewMode === "all"
+              ? teeTimesLoading
+                ? "loading"
+                : "loaded"
+              : myTeeTimesLoading
+              ? "loading"
+              : "loaded"}{" "}
+            | Group: {selectedGroup?.id ? "selected" : "none"}
           </Text>
         </View>
       ) : weekends.length === 0 ? (
@@ -106,49 +155,64 @@ export default function Dashboard() {
           <Text>No weekends found</Text>
         </View>
       ) : (
-        <View>
-          {(() => {
-            const teeTimesByWeekend = groupTeeTimesByWeekend(teeTimes);
-            let upcomingWeekendsHeadingShown = false;
+        (() => {
+          const currentTeeTimes = viewMode === "all" ? teeTimes : myTeeTimes;
+          return currentTeeTimes.length === 0 ? (
+            <View style={styles.card}>
+              <Text>
+                {viewMode === "all"
+                  ? "No tee times found"
+                  : "No tee times assigned to you"}
+              </Text>
+            </View>
+          ) : (
+            <View>
+              {(() => {
+                const teeTimesByWeekend =
+                  groupTeeTimesByWeekend(currentTeeTimes);
+                let upcomingWeekendsHeadingShown = false;
 
-            return weekends.map((weekend, index) => {
-              const weekendTeeTimes =
-                teeTimesByWeekend[weekend.id]?.teeTimes || [];
+                return weekends.map((weekend, index) => {
+                  const weekendTeeTimes =
+                    teeTimesByWeekend[weekend.id]?.teeTimes || [];
 
-              // Check if this is a weekend that doesn't get a relative label
-              const startDate = new Date(weekend.start_date);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              startDate.setHours(0, 0, 0, 0);
-              const daysDiff = Math.ceil(
-                (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-              );
-              const isUpcomingWeekend = daysDiff >= 14;
+                  // Check if this is a weekend that doesn't get a relative label
+                  const startDate = new Date(weekend.start_date);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  startDate.setHours(0, 0, 0, 0);
+                  const daysDiff = Math.ceil(
+                    (startDate.getTime() - today.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  );
+                  const isUpcomingWeekend = daysDiff >= 14;
 
-              // Show "Upcoming Weekends" heading before the first upcoming weekend
-              const shouldShowUpcomingHeading =
-                isUpcomingWeekend && !upcomingWeekendsHeadingShown;
-              if (shouldShowUpcomingHeading) {
-                upcomingWeekendsHeadingShown = true;
-              }
+                  // Show "Upcoming Weekends" heading before the first upcoming weekend
+                  const shouldShowUpcomingHeading =
+                    isUpcomingWeekend && !upcomingWeekendsHeadingShown;
+                  if (shouldShowUpcomingHeading) {
+                    upcomingWeekendsHeadingShown = true;
+                  }
 
-              return (
-                <View key={weekend.id}>
-                  {shouldShowUpcomingHeading && (
-                    <Text style={styles.upcomingWeekendsHeader}>
-                      Upcoming Weekends
-                    </Text>
-                  )}
-                  <WeekendSection
-                    weekendId={weekend.id}
-                    weekend={weekend}
-                    teeTimes={weekendTeeTimes}
-                  />
-                </View>
-              );
-            });
-          })()}
-        </View>
+                  return (
+                    <View key={weekend.id}>
+                      {shouldShowUpcomingHeading && (
+                        <Text style={styles.upcomingWeekendsHeader}>
+                          Upcoming Weekends
+                        </Text>
+                      )}
+                      <WeekendSection
+                        weekendId={weekend.id}
+                        weekend={weekend}
+                        teeTimes={weekendTeeTimes}
+                      />
+                    </View>
+                  );
+                });
+              })()}
+            </View>
+          );
+        })()
       )}
     </ScrollView>
   );
@@ -198,5 +262,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#334155",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#f1f5f9",
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 12,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#64748b",
+  },
+  tabTextActive: {
+    color: "#1e293b",
+    fontWeight: "600",
   },
 });

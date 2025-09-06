@@ -1,23 +1,4 @@
-export type Player = {
-  id: string;
-  full_name: string;
-};
-
-export type TeeTime = {
-  id: string;
-  tee_date: string;
-  tee_time: string;
-  weekend_id: string;
-  group_id: string;
-  max_players: number;
-  created_at: string;
-  players?: Player[];
-  weekends: {
-    id: string;
-    start_date: string;
-    end_date: string;
-  };
-};
+import { TeeTime } from "../types";
 
 export const groupTeeTimesByWeekend = (teeTimes: TeeTime[]) => {
   const grouped: {
