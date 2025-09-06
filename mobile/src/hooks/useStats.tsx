@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-
-type Stat = {
-  id: string;
-  label: string;
-  value: number;
-};
+import { Stat } from "../types";
 
 export const useStats = (groupId: string | null) => {
   const [stats, setStats] = useState<Stat[]>([

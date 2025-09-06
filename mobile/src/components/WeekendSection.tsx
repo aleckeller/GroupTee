@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/utils/formatting";
 import TeeTimeCard from "./TeeTimeCard";
-import { TeeTime } from "@/utils/teeTimeUtils";
+import { TeeTime, WeekendSectionProps } from "../types";
 
 function getRelativeWeekendLabel(
   startDate: string,
@@ -57,28 +59,26 @@ function groupTeeTimesByDay(teeTimes: TeeTime[]) {
   }));
 }
 
-type WeekendSectionProps = {
-  weekendId: string;
-  weekend: {
-    id: string;
-    name: string;
-    start_date: string;
-    end_date: string;
-  };
-  teeTimes: TeeTime[];
-};
-
 export default function WeekendSection({
   weekendId,
   weekend,
   teeTimes,
 }: WeekendSectionProps) {
+  const navigation = useNavigation();
+  const { userProfile } = useAuth();
   const relativeLabel = getRelativeWeekendLabel(
     weekend.start_date,
     weekend.end_date
   );
 
   const groupedByDay = groupTeeTimesByDay(teeTimes);
+
+  const handleTeeTimePress = (teeTime: TeeTime) => {
+    // Only allow admins to navigate to assignment screen
+    if (userProfile?.role === "admin") {
+      (navigation as any).navigate("TeeTimeAssignment", { teeTime });
+    }
+  };
 
   return (
     <View key={weekendId} style={styles.weekendSection}>
@@ -90,7 +90,11 @@ export default function WeekendSection({
           <View key={dayGroup.date} style={styles.dayGroup}>
             <Text style={styles.dayHeader}>{formatDate(dayGroup.date)}</Text>
             {dayGroup.teeTimes.map((teeTime) => (
-              <TeeTimeCard key={teeTime.id} teeTime={teeTime} />
+              <TeeTimeCard
+                key={teeTime.id}
+                teeTime={teeTime}
+                onPress={() => handleTeeTimePress(teeTime)}
+              />
             ))}
           </View>
         ))

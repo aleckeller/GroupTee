@@ -1,18 +1,14 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { formatTime, getAvailabilityStatus } from "@/utils/formatting";
-import { TeeTime } from "@/utils/teeTimeUtils";
+import { TeeTimeCardProps } from "../types";
 
-type TeeTimeCardProps = {
-  teeTime: TeeTime;
-};
-
-export default function TeeTimeCard({ teeTime }: TeeTimeCardProps) {
+export default function TeeTimeCard({ teeTime, onPress }: TeeTimeCardProps) {
   const playerCount = teeTime.players?.length || 0;
   const availability = getAvailabilityStatus(playerCount, teeTime.max_players);
 
-  return (
-    <View style={styles.teeItem}>
+  const CardContent = () => (
+    <>
       <View style={styles.teeTimeHeader}>
         <View style={styles.teeTimeInfo}>
           <Text style={styles.teeTime}>{formatTime(teeTime.tee_time)}</Text>
@@ -58,6 +54,20 @@ export default function TeeTimeCard({ teeTime }: TeeTimeCardProps) {
           </View>
         )}
       </View>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable style={styles.teeItem} onPress={onPress}>
+        <CardContent />
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={styles.teeItem}>
+      <CardContent />
     </View>
   );
 }

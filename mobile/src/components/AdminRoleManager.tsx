@@ -9,38 +9,54 @@ import {
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useGroup } from "@/hooks/useGroup";
 import RoleGuard from "./RoleGuard";
-
-type User = {
-  id: string;
-  email: string;
-  full_name: string | null;
-  role: "admin" | "member" | "guest";
-  is_admin: boolean;
-};
+import { User, UserRole } from "../types";
 
 export default function AdminRoleManager() {
   const { userProfile } = useAuth();
+  const { selectedGroup } = useGroup();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (selectedGroup?.id) {
+      fetchUsers();
+    }
+  }, [selectedGroup?.id]);
 
   const fetchUsers = async () => {
+    if (!selectedGroup?.id) return;
+
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from("memberships")
+        .select(
+          `
+          id,
+          role,
+          profiles!inner(
+            id,
+            full_name
+          )
+        `
+        )
+        .eq("group_id", selectedGroup.id)
+        .order("profiles(full_name)", { ascending: true });
 
       if (error) {
         console.error("Error fetching users:", error);
         return;
       }
 
-      setUsers(data || []);
+      const formattedUsers: User[] = (data || []).map((membership: any) => ({
+        id: membership.profiles.id,
+        full_name: membership.profiles.full_name,
+        role: membership.role as UserRole,
+        membership_id: membership.id,
+      }));
+
+      setUsers(formattedUsers);
     } catch (error) {
       console.error("Error in fetchUsers:", error);
     } finally {
@@ -48,18 +64,12 @@ export default function AdminRoleManager() {
     }
   };
 
-  const updateUserRole = async (
-    userId: string,
-    newRole: "admin" | "member" | "guest"
-  ) => {
+  const updateUserRole = async (membershipId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
-        .from("profiles")
-        .update({
-          role: newRole,
-          is_admin: newRole === "admin",
-        })
-        .eq("id", userId);
+        .from("memberships")
+        .update({ role: newRole })
+        .eq("id", membershipId);
 
       if (error) {
         Alert.alert("Error", `Failed to update role: ${error.message}`);
@@ -73,10 +83,7 @@ export default function AdminRoleManager() {
     }
   };
 
-  const confirmRoleChange = (
-    user: User,
-    newRole: "admin" | "member" | "guest"
-  ) => {
+  const confirmRoleChange = (user: User, newRole: UserRole) => {
     if (user.id === userProfile?.id) {
       Alert.alert("Warning", "You cannot change your own role");
       return;
@@ -84,12 +91,15 @@ export default function AdminRoleManager() {
 
     Alert.alert(
       "Confirm Role Change",
-      `Are you sure you want to change ${user.email || user.id} from ${
+      `Are you sure you want to change ${user.full_name || user.id} from ${
         user.role
       } to ${newRole}?`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Confirm", onPress: () => updateUserRole(user.id, newRole) },
+        {
+          text: "Confirm",
+          onPress: () => updateUserRole(user.membership_id, newRole),
+        },
       ]
     );
   };
@@ -97,10 +107,8 @@ export default function AdminRoleManager() {
   const renderUser = ({ item }: { item: User }) => (
     <View style={styles.userCard}>
       <View style={styles.userInfo}>
-        <Text style={styles.userEmail}>{item.email || item.id}</Text>
-        {item.full_name && (
-          <Text style={styles.userName}>{item.full_name}</Text>
-        )}
+        <Text style={styles.userEmail}>{item.full_name || item.id}</Text>
+        {item.full_name && <Text style={styles.userName}>ID: {item.id}</Text>}
         <View
           style={[
             styles.roleBadge,
@@ -154,11 +162,24 @@ export default function AdminRoleManager() {
     );
   }
 
+  if (!selectedGroup) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>User Role Management</Text>
+        <Text style={styles.subtitle}>
+          Please select a group to manage user roles
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <RoleGuard allowedRoles={["admin"]}>
       <View style={styles.container}>
         <Text style={styles.header}>User Role Management</Text>
-        <Text style={styles.subtitle}>Manage user roles and permissions</Text>
+        <Text style={styles.subtitle}>
+          Manage user roles for {selectedGroup.name}
+        </Text>
 
         <FlatList
           data={users}

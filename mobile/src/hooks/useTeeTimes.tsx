@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { TeeTime } from "@/utils/teeTimeUtils";
+import { TeeTime } from "../types";
 
 export const useTeeTimes = (groupId: string | null) => {
   const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const loadTeeTimes = async () => {
-    if (!groupId) return;
+  const loadTeeTimes = useCallback(async () => {
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -16,7 +19,7 @@ export const useTeeTimes = (groupId: string | null) => {
         .select(
           `
           *,
-          weekends(
+          weekends!inner(
             id,
             start_date,
             end_date
@@ -30,12 +33,12 @@ export const useTeeTimes = (groupId: string | null) => {
         `
         )
         .eq("group_id", groupId)
-        .order("weekends(start_date)", { ascending: true })
         .order("tee_date", { ascending: true })
         .order("tee_time", { ascending: true });
 
       if (error) {
         console.error("Error loading tee times:", error);
+        setTeeTimes([]);
         return;
       }
 
@@ -53,14 +56,15 @@ export const useTeeTimes = (groupId: string | null) => {
       setTeeTimes(teeTimesWithPlayers);
     } catch (error) {
       console.error("Error loading tee times:", error);
+      setTeeTimes([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId]);
 
   useEffect(() => {
     loadTeeTimes();
-  }, [groupId]);
+  }, [loadTeeTimes]);
 
   return { teeTimes, loading, refresh: loadTeeTimes };
 };

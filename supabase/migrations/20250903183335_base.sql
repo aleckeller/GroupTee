@@ -100,6 +100,46 @@ create policy "Authenticated read" on weekends for select to authenticated using
 create policy "Authenticated read" on tee_times for select to authenticated using (true);
 create policy "Authenticated read/write interests" on interests for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Authenticated read" on assignments for select to authenticated using (true);
+
+-- Allow admins to insert assignments (they can assign players to tee times)
+create policy "Admins can insert assignments" on assignments 
+for insert to authenticated 
+with check (
+  exists (
+    select 1 from memberships 
+    where user_id = auth.uid() 
+    and role = 'admin'
+  )
+);
+
+-- Allow admins to update assignments (they can modify assignments)
+create policy "Admins can update assignments" on assignments 
+for update to authenticated 
+using (
+  exists (
+    select 1 from memberships 
+    where user_id = auth.uid() 
+    and role = 'admin'
+  )
+)
+with check (
+  exists (
+    select 1 from memberships 
+    where user_id = auth.uid() 
+    and role = 'admin'
+  )
+);
+
+-- Allow admins to delete assignments (they can remove players from tee times)
+create policy "Admins can delete assignments" on assignments 
+for delete to authenticated 
+using (
+  exists (
+    select 1 from memberships 
+    where user_id = auth.uid() 
+    and role = 'admin'
+  )
+);
 create policy "Authenticated read" on trades for select to authenticated using (true);
 create policy "Authenticated read" on notifications for select to authenticated using (true);
 

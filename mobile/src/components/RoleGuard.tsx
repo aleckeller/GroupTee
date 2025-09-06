@@ -1,12 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useAuth } from "@/hooks/useAuth";
-
-type RoleGuardProps = {
-  allowedRoles: ("admin" | "member" | "guest")[];
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-};
+import { useAuth } from "../hooks/useAuth";
+import { colors, typography, spacing } from "../styles/theme";
+import { RoleGuardProps } from "../types";
 
 export default function RoleGuard({
   allowedRoles,
@@ -18,7 +14,7 @@ export default function RoleGuard({
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -26,7 +22,7 @@ export default function RoleGuard({
   if (!userProfile) {
     return (
       <View style={styles.container}>
-        <Text>Access denied. Please log in.</Text>
+        <Text style={styles.errorText}>Access denied. Please log in.</Text>
       </View>
     );
   }
@@ -58,29 +54,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f8fafc",
+    padding: spacing.xl,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#dc2626",
-    marginBottom: 16,
+    fontSize: typography["2xl"],
+    fontWeight: typography.bold,
+    color: colors.error,
+    marginBottom: spacing.lg,
   },
   message: {
-    fontSize: 16,
-    color: "#374151",
+    fontSize: typography.base,
+    color: colors.textPrimary,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   role: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 8,
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   required: {
-    fontSize: 14,
-    color: "#6b7280",
+    fontSize: typography.sm,
+    color: colors.textSecondary,
     textAlign: "center",
+  },
+  loadingText: {
+    fontSize: typography.base,
+    color: colors.textSecondary,
+  },
+  errorText: {
+    fontSize: typography.base,
+    color: colors.error,
   },
 });

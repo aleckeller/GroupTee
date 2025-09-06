@@ -1,11 +1,18 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
 import { useStats } from "@/hooks/useStats";
 import { useTeeTimes } from "@/hooks/useTeeTimes";
 import { useWeekends } from "@/hooks/useWeekends";
-import { groupTeeTimesByWeekend, TeeTime } from "@/utils/teeTimeUtils";
+import { groupTeeTimesByWeekend } from "@/utils/teeTimeUtils";
 import RoleGuard from "@/components/RoleGuard";
 import StatsCard from "@/components/StatsCard";
 import WeekendSection from "@/components/WeekendSection";
@@ -13,17 +20,54 @@ import WeekendSection from "@/components/WeekendSection";
 export default function AdminDashboard() {
   const { userProfile } = useAuth();
   const { selectedGroup } = useGroup();
-  const { stats, loading: statsLoading } = useStats(selectedGroup?.id || null);
-  const { teeTimes, loading: teeTimesLoading } = useTeeTimes(
-    selectedGroup?.id || null
+  const {
+    stats,
+    loading: statsLoading,
+    refresh: refreshStats,
+  } = useStats(selectedGroup?.id || null);
+  const {
+    teeTimes,
+    loading: teeTimesLoading,
+    refresh: refreshTeeTimes,
+  } = useTeeTimes(selectedGroup?.id || null);
+  const {
+    weekends,
+    loading: weekendsLoading,
+    refresh: refreshWeekends,
+  } = useWeekends();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Refresh all data when the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Only refresh if we have a selected group
+      if (selectedGroup?.id) {
+        refreshTeeTimes();
+      }
+    }, [selectedGroup?.id])
   );
-  const { weekends, loading: weekendsLoading } = useWeekends();
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh all data in parallel
+      await Promise.all([refreshStats(), refreshTeeTimes(), refreshWeekends()]);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <RoleGuard allowedRoles={["admin"]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {userProfile && (
           <View style={styles.roleIndicator}>
@@ -46,6 +90,11 @@ export default function AdminDashboard() {
         {weekendsLoading || teeTimesLoading ? (
           <View style={styles.card}>
             <Text>Loading weekends and tee times...</Text>
+            <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+              Weekends: {weekendsLoading ? "loading" : "loaded"} | TeeTimes:{" "}
+              {teeTimesLoading ? "loading" : "loaded"} | Group:{" "}
+              {selectedGroup?.id ? "selected" : "none"}
+            </Text>
           </View>
         ) : weekends.length === 0 ? (
           <View style={styles.card}>

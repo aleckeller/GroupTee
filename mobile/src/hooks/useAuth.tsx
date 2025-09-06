@@ -7,29 +7,9 @@ import React, {
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { UserProfile, UserRole, UseAuthReturn } from "../types";
 
-type UserRole = "admin" | "member" | "guest";
-
-type UserProfile = {
-  id: string;
-  full_name: string | null;
-  role: UserRole;
-};
-
-type AuthContextValue = {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  userProfile: UserProfile | null;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signUp: (
-    email: string,
-    password: string
-  ) => Promise<{ error?: string; needsVerification?: boolean }>;
-  signOut: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -130,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  const value = useMemo<AuthContextValue>(
+  const value = useMemo<UseAuthReturn>(
     () => ({
       user,
       session,

@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-
-export interface Weekend {
-  id: string;
-  start_date: string;
-  end_date: string;
-}
+import { Weekend } from "../types";
 
 export const useWeekends = () => {
   const [weekends, setWeekends] = useState<Weekend[]>([]);

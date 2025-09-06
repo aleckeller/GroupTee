@@ -4,24 +4,13 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { Group, UseGroupReturn } from "../types";
 
-export type Group = {
-  id: string;
-  name: string;
-};
-
-type GroupContextValue = {
-  loading: boolean;
-  groups: Group[];
-  selectedGroup: Group | null;
-  selectGroup: (group: Group | null) => void;
-  refresh: () => Promise<void>;
-};
-
-const GroupContext = createContext<GroupContextValue | undefined>(undefined);
+const GroupContext = createContext<UseGroupReturn | undefined>(undefined);
 
 export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -31,7 +20,7 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     if (authLoading) return;
     setLoading(true);
     try {
@@ -49,22 +38,23 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setGroups([]);
       }
-
-      // Keep selected group if still present; otherwise clear
-      setSelectedGroup(
-        (prev) => prev && (groups.find((g) => g.id === prev.id) ? prev : null)
-      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [authLoading, userProfile?.id]);
 
   useEffect(() => {
     loadGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, userProfile?.id, userProfile?.role]);
+  }, [loadGroups]);
 
-  const value = useMemo<GroupContextValue>(
+  // Keep selected group if still present; otherwise clear
+  useEffect(() => {
+    setSelectedGroup(
+      (prev) => prev && (groups.find((g) => g.id === prev.id) ? prev : null)
+    );
+  }, [groups]);
+
+  const value = useMemo<UseGroupReturn>(
     () => ({
       loading,
       groups,
@@ -72,7 +62,7 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({
       selectGroup: setSelectedGroup,
       refresh: loadGroups,
     }),
-    [loading, groups, selectedGroup]
+    [loading, groups, selectedGroup, loadGroups]
   );
 
   return (

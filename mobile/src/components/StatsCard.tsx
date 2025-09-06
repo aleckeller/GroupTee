@@ -1,16 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-
-type Stat = {
-  id: string;
-  label: string;
-  value: number;
-};
-
-type StatsCardProps = {
-  stats: Stat[];
-  loading: boolean;
-};
+import { colors, typography, spacing, borderRadius } from "../styles/theme";
+import { StatsCardProps } from "../types";
 
 export default function StatsCard({ stats, loading }: StatsCardProps) {
   return (
@@ -28,23 +19,25 @@ export default function StatsCard({ stats, loading }: StatsCardProps) {
 const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: colors.border,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   statLabel: {
-    color: "#64748b",
+    color: colors.textSecondary,
+    fontSize: typography.sm,
   },
 });
