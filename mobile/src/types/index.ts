@@ -142,6 +142,7 @@ export type StatsCardProps = {
 export type TeeTimeCardProps = {
   teeTime: TeeTime;
   onPress?: () => void;
+  currentUserId?: string | null;
 };
 
 export type WeekendSectionProps = {

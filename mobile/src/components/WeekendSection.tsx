@@ -65,7 +65,7 @@ export default function WeekendSection({
   teeTimes,
 }: WeekendSectionProps) {
   const navigation = useNavigation();
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const relativeLabel = getRelativeWeekendLabel(
     weekend.start_date,
     weekend.end_date
@@ -94,6 +94,7 @@ export default function WeekendSection({
                 key={teeTime.id}
                 teeTime={teeTime}
                 onPress={() => handleTeeTimePress(teeTime)}
+                currentUserId={user?.id}
               />
             ))}
           </View>

@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { formatTime, getAvailabilityStatus } from "@/utils/formatting";
 import { TeeTimeCardProps } from "../types";
 
-export default function TeeTimeCard({ teeTime, onPress }: TeeTimeCardProps) {
+export default function TeeTimeCard({
+  teeTime,
+  onPress,
+  currentUserId,
+}: TeeTimeCardProps) {
   const playerCount = teeTime.players?.length || 0;
   const availability = getAvailabilityStatus(playerCount, teeTime.max_players);
 
@@ -29,12 +33,29 @@ export default function TeeTimeCard({ teeTime, onPress }: TeeTimeCardProps) {
       <View style={styles.playersContainer}>
         {teeTime.players && teeTime.players.length > 0 ? (
           <View style={styles.playersList}>
-            {teeTime.players.map((player) => (
-              <View key={player.id} style={styles.playerItem}>
-                <Text style={styles.playerIcon}>👤</Text>
-                <Text style={styles.playerName}>{player.full_name}</Text>
-              </View>
-            ))}
+            {teeTime.players.map((player) => {
+              const isCurrentUser =
+                currentUserId && player.id === currentUserId;
+              return (
+                <View
+                  key={player.id}
+                  style={[
+                    styles.playerItem,
+                    isCurrentUser && styles.currentUserPlayer,
+                  ]}
+                >
+                  <Text style={styles.playerIcon}>👤</Text>
+                  <Text
+                    style={[
+                      styles.playerName,
+                      isCurrentUser && styles.currentUserName,
+                    ]}
+                  >
+                    {player.full_name}
+                  </Text>
+                </View>
+              );
+            })}
             {/* Show empty slots */}
             {Array.from({
               length: teeTime.max_players - playerCount,
@@ -119,6 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    alignItems: "flex-start",
   },
   playerItem: {
     flexDirection: "row",
@@ -131,6 +153,22 @@ const styles = StyleSheet.create({
     borderLeftColor: "#16a34a",
     flex: 1,
     minWidth: "45%",
+    maxWidth: "100%",
+    minHeight: 36,
+  },
+  currentUserPlayer: {
+    backgroundColor: "#f0f9ff",
+    borderLeftColor: "#0ea5e9",
+    borderWidth: 1,
+    borderColor: "#0ea5e9",
+    shadowColor: "#0ea5e9",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   playerIcon: {
     fontSize: 14,
@@ -140,6 +178,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#334155",
     fontWeight: "500",
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  currentUserName: {
+    color: "#0c4a6e",
+    fontWeight: "600",
   },
   emptySlot: {
     backgroundColor: "#f1f5f9",

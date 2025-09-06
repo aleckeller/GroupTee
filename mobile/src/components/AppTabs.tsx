@@ -4,9 +4,8 @@ import { Pressable, Text } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
 import SignOutButton from "./SignOutButton";
-import AdminDashboard from "@/screens/AdminDashboard";
+import Dashboard from "@/screens/Dashboard";
 import InterestFormScreen from "@/screens/InterestFormScreen";
-import MemberDashboard from "@/screens/MemberDashboard";
 import TradesScreen from "@/screens/TradesScreen";
 import AdminRoleManager from "./AdminRoleManager";
 import GuestScheduleScreen from "@/screens/GuestScheduleScreen";
@@ -20,16 +19,15 @@ type TabConfig = {
 };
 
 const ADMIN_TABS: TabConfig[] = [
-  { name: "Dashboard", component: AdminDashboard, title: "Dashboard" },
+  { name: "Dashboard", component: Dashboard, title: "Dashboard" },
   { name: "Interest", component: InterestFormScreen, title: "Interest" },
-  { name: "Member", component: MemberDashboard, title: "Member" },
   { name: "Trades", component: TradesScreen, title: "Trades" },
   { name: "Users", component: AdminRoleManager, title: "Users" },
 ];
 
 const MEMBER_TABS: TabConfig[] = [
+  { name: "Dashboard", component: Dashboard, title: "Dashboard" },
   { name: "Interest", component: InterestFormScreen, title: "Interest" },
-  { name: "Member", component: MemberDashboard, title: "Member" },
 ];
 
 const GUEST_TABS: TabConfig[] = [
@@ -72,21 +70,8 @@ function AppTabs() {
     }
   };
 
-  const getHeaderTitle = (role: string): string => {
-    const groupName = selectedGroup.name;
-    switch (role) {
-      case "admin":
-        return groupName;
-      case "member":
-      case "guest":
-        return `Group: ${groupName}`;
-      default:
-        return `Group: ${groupName}`;
-    }
-  };
-
   const tabs = getTabsForRole(userProfile.role);
-  const headerTitle = getHeaderTitle(userProfile.role);
+  const headerTitle = selectedGroup.name;
 
   return (
     <Tabs.Navigator
