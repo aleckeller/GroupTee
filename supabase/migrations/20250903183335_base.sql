@@ -41,12 +41,14 @@ create table if not exists tee_times (
 create table if not exists interests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete cascade,
-  walking boolean default false,
-  riding boolean default true,
+  interest_date date not null,
+  wants_to_play boolean,
+  time_preference text,
+  transportation text check (transportation in ('walking', 'riding')),
   partners text,
-  game_type text,
   notes text,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  unique(user_id, interest_date)
 );
 
 create table if not exists assignments (

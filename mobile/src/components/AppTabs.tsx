@@ -6,7 +6,7 @@ import { useGroup } from "@/hooks/useGroup";
 import { useNotifications } from "@/hooks/useNotifications";
 import SignOutButton from "./SignOutButton";
 import Dashboard from "@/screens/Dashboard";
-import InterestFormScreen from "@/screens/InterestFormScreen";
+import CalendarInterestScreen from "@/screens/CalendarInterestScreen";
 import TradesScreen from "@/screens/TradesScreen";
 import AdminRoleManager from "./AdminRoleManager";
 import GuestScheduleScreen from "@/screens/GuestScheduleScreen";
@@ -21,14 +21,14 @@ type TabConfig = {
 
 const ADMIN_TABS: TabConfig[] = [
   { name: "Dashboard", component: Dashboard, title: "Dashboard" },
-  { name: "Interest", component: InterestFormScreen, title: "Interest" },
+  { name: "Interest", component: CalendarInterestScreen, title: "Interest" },
   { name: "Trades", component: TradesScreen, title: "Trades" },
   { name: "Users", component: AdminRoleManager, title: "Users" },
 ];
 
 const MEMBER_TABS: TabConfig[] = [
   { name: "Dashboard", component: Dashboard, title: "Dashboard" },
-  { name: "Interest", component: InterestFormScreen, title: "Interest" },
+  { name: "Interest", component: CalendarInterestScreen, title: "Interest" },
 ];
 
 const GUEST_TABS: TabConfig[] = [

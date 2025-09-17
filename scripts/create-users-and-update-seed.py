@@ -425,43 +425,55 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
 
     # Add interests
     content += "-- Insert sample interests for member users\n"
-    content += "INSERT INTO interests (id, user_id, walking, riding, partners, game_type, notes) VALUES\n"
+    content += "INSERT INTO interests (id, user_id, interest_date, wants_to_play, time_preference, transportation, partners, notes) VALUES\n"
+
+    # Get current date and create some sample dates
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    this_weekend_start = today + timedelta(days=(5 - today.weekday()) % 7)  # Next Saturday
+    this_weekend_end = this_weekend_start + timedelta(days=1)  # Sunday
+    next_weekend_start = this_weekend_start + timedelta(days=7)  # Following Saturday
+    next_weekend_end = next_weekend_start + timedelta(days=1)  # Following Sunday
 
     interests = [
         (
             "550e8400-e29b-41d4-a716-446655440300",
             "550e8400-e29b-41d4-a716-446655440102",
-            False,
+            this_weekend_start.strftime('%Y-%m-%d'),
             True,
+            "morning",
+            "riding",
             "Mike Johnson, Tom Davis",
-            "Scramble",
             "Prefer early morning tee times",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440301",
             "550e8400-e29b-41d4-a716-446655440103",
+            this_weekend_end.strftime('%Y-%m-%d'),
             True,
-            False,
+            "mid-morning",
+            "walking",
             "Sarah Wilson",
-            "Best Ball",
             "Walking only, flexible on partners",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440302",
             "550e8400-e29b-41d4-a716-446655440104",
+            next_weekend_start.strftime('%Y-%m-%d'),
             False,
-            True,
-            "David Brown, Emma Champion",
-            "Scramble",
-            "Weekend warriors, prefer afternoon",
+            None,
+            None,
+            None,
+            None,
         ),
         (
             "550e8400-e29b-41d4-a716-446655440303",
             "550e8400-e29b-41d4-a716-446655440105",
+            next_weekend_end.strftime('%Y-%m-%d'),
             True,
-            True,
+            "afternoon",
+            "walking",
             "Lisa Player",
-            "Individual",
             "Flexible on format, love the game",
         ),
     ]
@@ -470,16 +482,22 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
     for (
         interest_id,
         expected_user_id,
-        walking,
-        riding,
+        interest_date,
+        wants_to_play,
+        time_preference,
+        transportation,
         partners,
-        game_type,
         notes,
     ) in interests:
         if expected_user_id in id_mapping:
             actual_user_id = id_mapping[expected_user_id]
+            wants_to_play_str = "true" if wants_to_play else "false" if wants_to_play is False else "NULL"
+            time_pref_str = f"'{time_preference}'" if time_preference else "NULL"
+            transport_str = f"'{transportation}'" if transportation else "NULL"
+            partners_str = f"'{partners}'" if partners else "NULL"
+            notes_str = f"'{notes}'" if notes else "NULL"
             interest_lines.append(
-                f"  ('{interest_id}', '{actual_user_id}', {walking}, {riding}, '{partners}', '{game_type}', '{notes}')"
+                f"  ('{interest_id}', '{actual_user_id}', '{interest_date}', {wants_to_play_str}, {time_pref_str}, {transport_str}, {partners_str}, {notes_str})"
             )
 
     if interest_lines:

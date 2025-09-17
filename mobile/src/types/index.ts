@@ -56,12 +56,21 @@ export type TeeTime = {
 export type Interest = {
   id: string;
   user_id: string;
-  walking: boolean;
-  riding: boolean;
+  interest_date: string;
+  wants_to_play: boolean | null;
+  time_preference: string | null;
+  transportation: string | null;
   partners: string | null;
-  game_type: string | null;
   notes: string | null;
   created_at: string;
+};
+
+// Lockout Types
+export type LockoutStatus = {
+  isLocked: boolean;
+  isApproachingLockout: boolean;
+  daysUntilLockout: number;
+  message: string | null;
 };
 
 // Assignment Types
