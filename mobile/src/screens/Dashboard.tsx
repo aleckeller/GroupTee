@@ -22,7 +22,6 @@ import WeekendSection from "@/components/WeekendSection";
 import NotificationCard from "@/components/NotificationCard";
 
 import {
-  setJustReturnedFromAssignment,
   getJustReturnedFromAssignment,
   getHasAssignmentChanges,
   clearAssignmentState,
@@ -98,8 +97,6 @@ export default function Dashboard() {
             refreshInterests();
           }
         }
-        // If no changes, don't refresh to preserve scroll position
-        return;
       }
 
       // Normal refresh when not returning from assignment
@@ -161,11 +158,7 @@ export default function Dashboard() {
       )}
 
       <StatsCard
-        stats={
-          userProfile?.role === "admin"
-            ? stats
-            : stats.filter((stat) => stat.label !== "Trades")
-        }
+        stats={stats.filter((stat) => stat.label !== "Trades")}
         loading={statsLoading}
       />
 
