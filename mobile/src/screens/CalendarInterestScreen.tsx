@@ -149,6 +149,7 @@ export default function CalendarInterestScreen() {
           loadInterestForDate={loadInterestForDate}
           loading={loading}
           lockoutStatus={selectedDate ? getLockoutStatus(selectedDate) : null}
+          groupId={selectedGroup?.id || null}
         />
       </View>
     </RoleGuard>

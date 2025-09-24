@@ -9,13 +9,16 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { LockoutStatus } from "../types";
+import { LockoutStatus, GroupMember } from "../types";
+import { useGroupMembers } from "../hooks/useGroupMembers";
+import { useAuth } from "../hooks/useAuth";
 
 interface DayInterest {
   wants_to_play: boolean | null;
   time_preference: string;
   transportation: string;
-  partners: string;
+  partners: string[]; // Changed from string to array of member IDs
+  guest_count: number;
   notes: string;
 }
 
@@ -27,6 +30,7 @@ interface DayInterestModalProps {
   loadInterestForDate: (date: string) => Promise<any>;
   loading: boolean;
   lockoutStatus?: LockoutStatus | null;
+  groupId: string | null; // Added groupId prop
 }
 
 const timeOptions = [
@@ -49,26 +53,55 @@ export default function DayInterestModal({
   loadInterestForDate,
   loading: externalLoading,
   lockoutStatus,
+  groupId,
 }: DayInterestModalProps) {
   const [dayInterest, setDayInterest] = useState<DayInterest>({
     wants_to_play: null,
     time_preference: "morning",
     transportation: "riding",
-    partners: "",
+    partners: [],
+    guest_count: 0,
     notes: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Get group members
+  const { members, loading: membersLoading } = useGroupMembers(groupId);
+
+  // Get current user to filter them out from partners list
+  const { userProfile } = useAuth();
+
+  // Filter out current user from members list
+  const availablePartners = members.filter(
+    (member) => member.id !== userProfile?.id
+  );
 
   useEffect(() => {
     if (visible && selectedDate) {
       setIsSaving(false); // Reset loading state when modal opens
       loadInterestForDate(selectedDate).then((data) => {
         if (data) {
+          // Handle both old string format and new array format for partners
+          let partnersArray: string[] = [];
+          if (data.partners) {
+            if (typeof data.partners === "string") {
+              // If it's a string, try to parse it as JSON array, otherwise treat as empty
+              try {
+                partnersArray = JSON.parse(data.partners);
+              } catch {
+                partnersArray = [];
+              }
+            } else if (Array.isArray(data.partners)) {
+              partnersArray = data.partners;
+            }
+          }
+
           setDayInterest({
             wants_to_play: data.wants_to_play,
             time_preference: data.time_preference || "morning",
             transportation: data.transportation || "riding",
-            partners: data.partners || "",
+            partners: partnersArray,
+            guest_count: Math.min(data.guest_count || 0, 3),
             notes: data.notes || "",
           });
         } else {
@@ -76,7 +109,8 @@ export default function DayInterestModal({
             wants_to_play: null,
             time_preference: "morning",
             transportation: "riding",
-            partners: "",
+            partners: [],
+            guest_count: 0,
             notes: "",
           });
         }
@@ -118,6 +152,35 @@ export default function DayInterestModal({
       month: "long",
       day: "numeric",
     });
+  };
+
+  const togglePartner = (memberId: string) => {
+    if (lockoutStatus?.isLocked) return;
+
+    setDayInterest((prev) => ({
+      ...prev,
+      partners: prev.partners.includes(memberId)
+        ? prev.partners.filter((id) => id !== memberId)
+        : [...prev.partners, memberId],
+    }));
+  };
+
+  const selectAllPartners = () => {
+    if (lockoutStatus?.isLocked) return;
+
+    setDayInterest((prev) => ({
+      ...prev,
+      partners: availablePartners.map((member) => member.id),
+    }));
+  };
+
+  const clearAllPartners = () => {
+    if (lockoutStatus?.isLocked) return;
+
+    setDayInterest((prev) => ({
+      ...prev,
+      partners: [],
+    }));
   };
 
   return (
@@ -328,20 +391,179 @@ export default function DayInterestModal({
                 </View>
 
                 <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Number of Guests</Text>
+                  <View style={styles.guestCountContainer}>
+                    <Pressable
+                      style={[
+                        styles.guestCountButton,
+                        lockoutStatus?.isLocked &&
+                          styles.guestCountButtonDisabled,
+                      ]}
+                      onPress={() =>
+                        !lockoutStatus?.isLocked &&
+                        setDayInterest({
+                          ...dayInterest,
+                          guest_count: Math.max(0, dayInterest.guest_count - 1),
+                        })
+                      }
+                      disabled={lockoutStatus?.isLocked}
+                    >
+                      <Text
+                        style={[
+                          styles.guestCountButtonText,
+                          lockoutStatus?.isLocked &&
+                            styles.guestCountButtonTextDisabled,
+                        ]}
+                      >
+                        -
+                      </Text>
+                    </Pressable>
+                    <Text
+                      style={[
+                        styles.guestCountDisplay,
+                        lockoutStatus?.isLocked &&
+                          styles.guestCountDisplayDisabled,
+                      ]}
+                    >
+                      {dayInterest.guest_count}
+                    </Text>
+                    <Pressable
+                      style={[
+                        styles.guestCountButton,
+                        (lockoutStatus?.isLocked ||
+                          dayInterest.guest_count >= 3) &&
+                          styles.guestCountButtonDisabled,
+                      ]}
+                      onPress={() =>
+                        !lockoutStatus?.isLocked &&
+                        dayInterest.guest_count < 3 &&
+                        setDayInterest({
+                          ...dayInterest,
+                          guest_count: dayInterest.guest_count + 1,
+                        })
+                      }
+                      disabled={
+                        lockoutStatus?.isLocked || dayInterest.guest_count >= 3
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.guestCountButtonText,
+                          (lockoutStatus?.isLocked ||
+                            dayInterest.guest_count >= 3) &&
+                            styles.guestCountButtonTextDisabled,
+                        ]}
+                      >
+                        +
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <Text style={styles.guestCountHelpText}>
+                    How many guests will be playing with you?
+                  </Text>
+                </View>
+
+                <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Preferred Partners</Text>
-                  <TextInput
-                    style={[
-                      styles.textInput,
-                      lockoutStatus?.isLocked && styles.textInputDisabled,
-                    ]}
-                    value={dayInterest.partners}
-                    onChangeText={(text) =>
-                      !lockoutStatus?.isLocked &&
-                      setDayInterest({ ...dayInterest, partners: text })
-                    }
-                    placeholder="Names (optional)"
-                    editable={!lockoutStatus?.isLocked}
-                  />
+                  {membersLoading ? (
+                    <Text style={styles.loadingText}>Loading members...</Text>
+                  ) : (
+                    <>
+                      {/* Select All / Clear buttons */}
+                      <View style={styles.actionButtonsContainer}>
+                        <Pressable
+                          style={[
+                            styles.actionButton,
+                            styles.selectAllButton,
+                            lockoutStatus?.isLocked &&
+                              styles.actionButtonDisabled,
+                          ]}
+                          onPress={selectAllPartners}
+                          disabled={
+                            lockoutStatus?.isLocked ||
+                            availablePartners.length === 0
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.actionButtonText,
+                              styles.selectAllButtonText,
+                              lockoutStatus?.isLocked &&
+                                styles.actionButtonTextDisabled,
+                            ]}
+                          >
+                            Select All
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={[
+                            styles.actionButton,
+                            styles.clearButton,
+                            lockoutStatus?.isLocked &&
+                              styles.actionButtonDisabled,
+                          ]}
+                          onPress={clearAllPartners}
+                          disabled={
+                            lockoutStatus?.isLocked ||
+                            dayInterest.partners.length === 0
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.actionButtonText,
+                              styles.clearButtonText,
+                              lockoutStatus?.isLocked &&
+                                styles.actionButtonTextDisabled,
+                            ]}
+                          >
+                            Clear
+                          </Text>
+                        </Pressable>
+                      </View>
+
+                      <View style={styles.membersScrollContainer}>
+                        <ScrollView
+                          style={styles.membersScrollView}
+                          showsVerticalScrollIndicator={true}
+                          nestedScrollEnabled={true}
+                        >
+                          <View style={styles.partnersContainer}>
+                            {availablePartners.map((member) => (
+                              <Pressable
+                                key={member.id}
+                                style={[
+                                  styles.partnerOption,
+                                  dayInterest.partners.includes(member.id) &&
+                                    styles.partnerOptionSelected,
+                                  lockoutStatus?.isLocked &&
+                                    styles.partnerOptionDisabled,
+                                ]}
+                                onPress={() => togglePartner(member.id)}
+                                disabled={lockoutStatus?.isLocked}
+                              >
+                                <Text
+                                  style={[
+                                    styles.partnerOptionText,
+                                    dayInterest.partners.includes(member.id) &&
+                                      styles.partnerOptionTextSelected,
+                                    lockoutStatus?.isLocked &&
+                                      styles.partnerOptionTextDisabled,
+                                  ]}
+                                >
+                                  {member.full_name}
+                                </Text>
+                              </Pressable>
+                            ))}
+                            {availablePartners.length === 0 && (
+                              <Text style={styles.noMembersText}>
+                                No other group members found
+                              </Text>
+                            )}
+                          </View>
+                        </ScrollView>
+                      </View>
+                    </>
+                  )}
                 </View>
 
                 <View style={styles.formGroup}>
@@ -574,5 +796,148 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
     borderColor: "#d1d5db",
     color: "#9ca3af",
+  },
+  // Partner selection styles
+  loadingText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    padding: 12,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectAllButton: {
+    backgroundColor: "#f0f9ff",
+    borderWidth: 1,
+    borderColor: "#0ea5e9",
+  },
+  clearButton: {
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  actionButtonDisabled: {
+    backgroundColor: "#f3f4f6",
+    borderColor: "#d1d5db",
+    opacity: 0.6,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  selectAllButtonText: {
+    color: "#0ea5e9",
+  },
+  clearButtonText: {
+    color: "#ef4444",
+  },
+  actionButtonTextDisabled: {
+    color: "#9ca3af",
+  },
+  membersScrollContainer: {
+    height: 160, // Reduced height for more compact design
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    backgroundColor: "#ffffff",
+  },
+  membersScrollView: {
+    flex: 1,
+  },
+  partnersContainer: {
+    padding: 4,
+    gap: 4,
+  },
+  partnerOption: {
+    backgroundColor: "#f9fafb",
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginBottom: 2,
+  },
+  partnerOptionSelected: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#0ea5e9",
+  },
+  partnerOptionDisabled: {
+    backgroundColor: "#f3f4f6",
+    borderColor: "#d1d5db",
+    opacity: 0.6,
+  },
+  partnerOptionText: {
+    fontSize: 14,
+    color: "#374151",
+  },
+  partnerOptionTextSelected: {
+    color: "#0ea5e9",
+    fontWeight: "500",
+  },
+  partnerOptionTextDisabled: {
+    color: "#9ca3af",
+  },
+  noMembersText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    padding: 20,
+    fontStyle: "italic",
+  },
+  // Guest count styles
+  guestCountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 20,
+    marginBottom: 8,
+  },
+  guestCountButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#0ea5e9",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#0ea5e9",
+  },
+  guestCountButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    borderColor: "#d1d5db",
+  },
+  guestCountButtonText: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  guestCountButtonTextDisabled: {
+    color: "#9ca3af",
+  },
+  guestCountDisplay: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1f2937",
+    minWidth: 40,
+    textAlign: "center",
+  },
+  guestCountDisplayDisabled: {
+    color: "#9ca3af",
+  },
+  guestCountHelpText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });

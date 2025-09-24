@@ -45,7 +45,8 @@ create table if not exists interests (
   wants_to_play boolean,
   time_preference text,
   transportation text check (transportation in ('walking', 'riding')),
-  partners text,
+  partners jsonb,
+  guest_count integer default 0,
   notes text,
   created_at timestamp with time zone default now(),
   unique(user_id, interest_date)
@@ -56,6 +57,7 @@ create table if not exists assignments (
   weekend_id uuid references weekends(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
   tee_time_id uuid references tee_times(id) on delete cascade,
+  guest_names text[], -- Array of guest names for this assignment
   created_at timestamp with time zone default now()
 );
 
@@ -101,6 +103,19 @@ create policy "Authenticated read" on memberships for select to authenticated us
 create policy "Authenticated read" on weekends for select to authenticated using (true);
 create policy "Authenticated read" on tee_times for select to authenticated using (true);
 create policy "Authenticated read/write interests" on interests for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Allow admins to read interests for all group members
+create policy "Admins can read group interests" on interests 
+for select to authenticated 
+using (
+  exists (
+    select 1 from memberships m1
+    join memberships m2 on m1.group_id = m2.group_id
+    where m1.user_id = auth.uid() 
+    and m1.role = 'admin'
+    and m2.user_id = interests.user_id
+  )
+);
 create policy "Authenticated read" on assignments for select to authenticated using (true);
 
 -- Allow admins to insert assignments (they can assign players to tee times)

@@ -13,7 +13,8 @@ interface DayInterest {
   wants_to_play: boolean | null;
   time_preference: string;
   transportation: string;
-  partners: string;
+  partners: string[]; // Array of member IDs in component
+  guest_count: number;
   notes: string;
 }
 
@@ -25,6 +26,7 @@ interface Interest {
   time_preference: string | null;
   transportation: string | null;
   partners: string | null;
+  guest_count: number | null;
   notes: string | null;
 }
 
@@ -196,7 +198,12 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
           ? dayInterest.transportation
           : null,
         partners: dayInterest.wants_to_play
-          ? dayInterest.partners || null
+          ? dayInterest.partners && dayInterest.partners.length > 0
+            ? JSON.stringify(dayInterest.partners)
+            : null
+          : null,
+        guest_count: dayInterest.wants_to_play
+          ? Math.min(dayInterest.guest_count, 3)
           : null,
         notes: dayInterest.wants_to_play ? dayInterest.notes || null : null,
       };

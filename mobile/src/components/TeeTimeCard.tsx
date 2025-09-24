@@ -1,15 +1,33 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { formatTime, getAvailabilityStatus } from "@/utils/formatting";
-import { TeeTimeCardProps } from "../types";
+import { TeeTimeCardProps, Interest } from "../types";
 
 export default function TeeTimeCard({
   teeTime,
   onPress,
   currentUserId,
+  interests,
 }: TeeTimeCardProps) {
   const playerCount = teeTime.players?.length || 0;
-  const availability = getAvailabilityStatus(playerCount, teeTime.max_players);
+
+  // Calculate total spots used including guests
+  const getTotalSpotsUsed = () => {
+    if (!teeTime.players || !interests) return playerCount;
+
+    return teeTime.players.reduce((total, player) => {
+      const playerInterest = interests.find(
+        (interest) => interest.user_id === player.id
+      );
+      return total + 1 + (playerInterest?.guest_count || 0);
+    }, 0);
+  };
+
+  const totalSpotsUsed = getTotalSpotsUsed();
+  const availability = getAvailabilityStatus(
+    totalSpotsUsed,
+    teeTime.max_players
+  );
 
   const CardContent = () => (
     <>
@@ -33,32 +51,69 @@ export default function TeeTimeCard({
       <View style={styles.playersContainer}>
         {teeTime.players && teeTime.players.length > 0 ? (
           <View style={styles.playersList}>
-            {teeTime.players.map((player) => {
-              const isCurrentUser =
-                currentUserId && player.id === currentUserId;
-              return (
-                <View
-                  key={player.id}
-                  style={[
-                    styles.playerItem,
-                    isCurrentUser && styles.currentUserPlayer,
-                  ]}
-                >
-                  <Text style={styles.playerIcon}>👤</Text>
-                  <Text
+            {teeTime.players
+              .map((player) => {
+                const isCurrentUser =
+                  currentUserId && player.id === currentUserId;
+
+                // Find interest data for this player
+                const playerInterest = interests?.find(
+                  (interest) => interest.user_id === player.id
+                );
+                const guestCount = playerInterest?.guest_count || 0;
+
+                // Create array of all spots (member + guests)
+                const allSpots = [
+                  {
+                    id: player.id,
+                    name: player.full_name,
+                    isGuest: false,
+                    isCurrentUser,
+                  },
+                ];
+
+                // Add guest spots
+                const playerGuestNames = player.guest_names || [];
+                for (let i = 1; i <= guestCount; i++) {
+                  const guestName =
+                    playerGuestNames[i - 1] ||
+                    `${player.full_name}'s Guest ${i}`;
+                  allSpots.push({
+                    id: `${player.id}_guest_${i}`,
+                    name: guestName,
+                    isGuest: true,
+                    isCurrentUser: false,
+                  });
+                }
+
+                return allSpots.map((spot) => (
+                  <View
+                    key={spot.id}
                     style={[
-                      styles.playerName,
-                      isCurrentUser && styles.currentUserName,
+                      styles.playerItem,
+                      spot.isCurrentUser && styles.currentUserPlayer,
+                      spot.isGuest && styles.guestPlayer,
                     ]}
                   >
-                    {player.full_name}
-                  </Text>
-                </View>
-              );
-            })}
+                    <Text style={styles.playerIcon}>
+                      {spot.isGuest ? "👥" : "👤"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.playerName,
+                        spot.isCurrentUser && styles.currentUserName,
+                        spot.isGuest && styles.guestPlayerName,
+                      ]}
+                    >
+                      {spot.name}
+                    </Text>
+                  </View>
+                ));
+              })
+              .flat()}
             {/* Show empty slots */}
             {Array.from({
-              length: teeTime.max_players - playerCount,
+              length: teeTime.max_players - getTotalSpotsUsed(),
             }).map((_, index) => (
               <View key={`empty-${index}`} style={styles.emptySlot}>
                 <Text style={styles.emptySlotText}>Available</Text>
@@ -184,6 +239,14 @@ const styles = StyleSheet.create({
   currentUserName: {
     color: "#0c4a6e",
     fontWeight: "600",
+  },
+  guestPlayer: {
+    backgroundColor: "#f0fdf4",
+    borderLeftColor: "#22c55e",
+  },
+  guestPlayerName: {
+    color: "#166534",
+    fontWeight: "500",
   },
   emptySlot: {
     backgroundColor: "#f1f5f9",

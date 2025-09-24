@@ -25,6 +25,8 @@ export const useTeeTimes = (groupId: string | null) => {
             end_date
           ),
           assignments(
+            id,
+            guest_names,
             profiles(
               id,
               full_name
@@ -47,9 +49,10 @@ export const useTeeTimes = (groupId: string | null) => {
         data?.map((teeTime) => ({
           ...teeTime,
           players:
-            teeTime.assignments?.map(
-              (assignment: any) => assignment.profiles
-            ) || [],
+            teeTime.assignments?.map((assignment: any) => ({
+              ...assignment.profiles,
+              guest_names: assignment.guest_names || [],
+            })) || [],
           weekends: teeTime.weekends,
         })) || [];
 

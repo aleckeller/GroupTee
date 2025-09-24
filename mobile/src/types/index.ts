@@ -38,6 +38,7 @@ export type Weekend = {
 export type Player = {
   id: string;
   full_name: string;
+  guest_names?: string[];
 };
 
 export type TeeTime = {
@@ -60,7 +61,8 @@ export type Interest = {
   wants_to_play: boolean | null;
   time_preference: string | null;
   transportation: string | null;
-  partners: string | null;
+  partners: string | null; // Still string in database, but will be JSON array
+  guest_count: number | null;
   notes: string | null;
   created_at: string;
 };
@@ -152,12 +154,14 @@ export type TeeTimeCardProps = {
   teeTime: TeeTime;
   onPress?: () => void;
   currentUserId?: string | null;
+  interests?: Interest[];
 };
 
 export type WeekendSectionProps = {
   weekendId: string;
   weekend: Weekend;
   teeTimes: TeeTime[];
+  interests?: Interest[];
 };
 
 // Hook Return Types

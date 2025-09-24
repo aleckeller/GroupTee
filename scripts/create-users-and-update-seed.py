@@ -88,7 +88,123 @@ test_users = [
         "full_name": "Bob Spectator",
         "expected_id": "550e8400-e29b-41d4-a716-446655440108",
     },
+    # Additional diverse test users
+    {
+        "email": "jessica.morning@example.com",
+        "password": "password123",
+        "full_name": "Jessica Morning",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440109",
+    },
+    {
+        "email": "robert.walker@example.com",
+        "password": "password123",
+        "full_name": "Robert Walker",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440110",
+    },
+    {
+        "email": "maria.guest@example.com",
+        "password": "password123",
+        "full_name": "Maria Guest",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440111",
+    },
+    {
+        "email": "steve.afternoon@example.com",
+        "password": "password123",
+        "full_name": "Steve Afternoon",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440112",
+    },
+    {
+        "email": "linda.partner@example.com",
+        "password": "password123",
+        "full_name": "Linda Partner",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440113",
+    },
+    {
+        "email": "chris.flexible@example.com",
+        "password": "password123",
+        "full_name": "Chris Flexible",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440114",
+    },
+    {
+        "email": "amanda.early@example.com",
+        "password": "password123",
+        "full_name": "Amanda Early",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440115",
+    },
+    {
+        "email": "kevin.late@example.com",
+        "password": "password123",
+        "full_name": "Kevin Late",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440116",
+    },
+    {
+        "email": "sophie.social@example.com",
+        "password": "password123",
+        "full_name": "Sophie Social",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440117",
+    },
+    {
+        "email": "marcus.solo@example.com",
+        "password": "password123",
+        "full_name": "Marcus Solo",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440118",
+    },
+    {
+        "email": "rachel.family@example.com",
+        "password": "password123",
+        "full_name": "Rachel Family",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440119",
+    },
+    {
+        "email": "daniel.business@example.com",
+        "password": "password123",
+        "full_name": "Daniel Business",
+        "expected_id": "550e8400-e29b-41d4-a716-446655440120",
+    },
 ]
+
+# Create name-to-ID mapping for partners
+name_to_id_mapping = {
+    "John Admin": "550e8400-e29b-41d4-a716-446655440100",
+    "Sarah Manager": "550e8400-e29b-41d4-a716-446655440101",
+    "Alec Keller Admin": "781eb1d0-4968-4b4a-b648-c951c31ebd4f",
+    "Mike Golfer": "550e8400-e29b-41d4-a716-446655440102",
+    "Lisa Player": "550e8400-e29b-41d4-a716-446655440103",
+    "David Pro": "550e8400-e29b-41d4-a716-446655440104",
+    "Emma Champion": "550e8400-e29b-41d4-a716-446655440105",
+    "Tom Visitor": "550e8400-e29b-41d4-a716-446655440106",
+    "Anna Newcomer": "550e8400-e29b-41d4-a716-446655440107",
+    "Bob Spectator": "550e8400-e29b-41d4-a716-446655440108",
+    "Jessica Morning": "550e8400-e29b-41d4-a716-446655440109",
+    "Robert Walker": "550e8400-e29b-41d4-a716-446655440110",
+    "Maria Evening": "550e8400-e29b-41d4-a716-446655440111",
+    "Sarah Wilson": "550e8400-e29b-41d4-a716-446655440112",
+    "Chris Flexible": "550e8400-e29b-41d4-a716-446655440114",
+    "Amanda Early": "550e8400-e29b-41d4-a716-446655440115",
+    "Kevin Late": "550e8400-e29b-41d4-a716-446655440116",
+    "Sophie Social": "550e8400-e29b-41d4-a716-446655440117",
+    "Marcus Solo": "550e8400-e29b-41d4-a716-446655440118",
+    "Rachel Family": "550e8400-e29b-41d4-a716-446655440119",
+    "Daniel Business": "550e8400-e29b-41d4-a716-446655440120",
+}
+
+
+def convert_partners_to_ids(partners_str):
+    """Convert partner names to JSON array of member IDs"""
+    if not partners_str:
+        return None
+
+    # Split by comma and map names to IDs
+    partner_names = [name.strip() for name in partners_str.split(",")]
+    partner_ids = []
+
+    for name in partner_names:
+        if name in name_to_id_mapping:
+            partner_ids.append(name_to_id_mapping[name])
+        else:
+            print(f"Warning: Unknown partner name '{name}' - skipping")
+
+    return partner_ids if partner_ids else None
 
 
 async def verify_users_in_auth_table(created_users):
@@ -225,44 +341,46 @@ def generate_seed_content(created_users):
 
     # Calculate dynamic weekend dates
     from datetime import datetime, timedelta
-    
+
     today = datetime.now()
-    
+
     # Find the next Saturday (this weekend)
     days_until_saturday = (5 - today.weekday()) % 7
-    if days_until_saturday == 0 and today.weekday() != 5:  # If today is not Saturday, get next Saturday
+    if (
+        days_until_saturday == 0 and today.weekday() != 5
+    ):  # If today is not Saturday, get next Saturday
         days_until_saturday = 7
-    
+
     this_weekend_start = today + timedelta(days=days_until_saturday)
     this_weekend_end = this_weekend_start + timedelta(days=1)
-    
+
     # Next weekend
     next_weekend_start = this_weekend_start + timedelta(days=7)
     next_weekend_end = next_weekend_start + timedelta(days=1)
-    
+
     # Weekend after next (for upcoming weekends section)
     weekend_after_next_start = this_weekend_start + timedelta(days=14)
     weekend_after_next_end = weekend_after_next_start + timedelta(days=1)
-    
+
     # Weekend in a month
     weekend_month_start = this_weekend_start + timedelta(days=28)
     weekend_month_end = weekend_month_start + timedelta(days=1)
-    
+
     # Weekend without tee times (for testing)
     weekend_no_tee_times_start = this_weekend_start + timedelta(days=35)
     weekend_no_tee_times_end = weekend_no_tee_times_start + timedelta(days=1)
-    
+
     # Format dates as strings
-    this_weekend_start_str = this_weekend_start.strftime('%Y-%m-%d')
-    this_weekend_end_str = this_weekend_end.strftime('%Y-%m-%d')
-    next_weekend_start_str = next_weekend_start.strftime('%Y-%m-%d')
-    next_weekend_end_str = next_weekend_end.strftime('%Y-%m-%d')
-    weekend_after_next_start_str = weekend_after_next_start.strftime('%Y-%m-%d')
-    weekend_after_next_end_str = weekend_after_next_end.strftime('%Y-%m-%d')
-    weekend_month_start_str = weekend_month_start.strftime('%Y-%m-%d')
-    weekend_month_end_str = weekend_month_end.strftime('%Y-%m-%d')
-    weekend_no_tee_times_start_str = weekend_no_tee_times_start.strftime('%Y-%m-%d')
-    weekend_no_tee_times_end_str = weekend_no_tee_times_end.strftime('%Y-%m-%d')
+    this_weekend_start_str = this_weekend_start.strftime("%Y-%m-%d")
+    this_weekend_end_str = this_weekend_end.strftime("%Y-%m-%d")
+    next_weekend_start_str = next_weekend_start.strftime("%Y-%m-%d")
+    next_weekend_end_str = next_weekend_end.strftime("%Y-%m-%d")
+    weekend_after_next_start_str = weekend_after_next_start.strftime("%Y-%m-%d")
+    weekend_after_next_end_str = weekend_after_next_end.strftime("%Y-%m-%d")
+    weekend_month_start_str = weekend_month_start.strftime("%Y-%m-%d")
+    weekend_month_end_str = weekend_month_end.strftime("%Y-%m-%d")
+    weekend_no_tee_times_start_str = weekend_no_tee_times_start.strftime("%Y-%m-%d")
+    weekend_no_tee_times_end_str = weekend_no_tee_times_end.strftime("%Y-%m-%d")
 
     # Start building the seed content
     content = f"""-- Seed data for Golf Weekend Tee Times App
@@ -338,78 +456,125 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
     content += "INSERT INTO memberships (id, user_id, group_id, role) VALUES\n"
 
     memberships = [
+        # Group A (Primary Group) - Most users assigned here
         (
             "550e8400-e29b-41d4-a716-446655440300",
-            "781eb1d0-4968-4b4a-b648-c951c31ebd4f",
-            "550e8400-e29b-41d4-a716-446655440001",
+            "781eb1d0-4968-4b4a-b648-c951c31ebd4f",  # Alec Keller Admin
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "admin",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440190",
-            "550e8400-e29b-41d4-a716-446655440100",
-            "550e8400-e29b-41d4-a716-446655440001",
-            "admin",
-        ),
-        (
-            "550e8400-e29b-41d4-a716-446655440191",
-            "550e8400-e29b-41d4-a716-446655440100",
-            "550e8400-e29b-41d4-a716-446655440002",
-            "admin",
-        ),
-        (
-            "550e8400-e29b-41d4-a716-446655440192",
-            "550e8400-e29b-41d4-a716-446655440100",
-            "550e8400-e29b-41d4-a716-446655440003",
-            "admin",
-        ),
-        (
-            "550e8400-e29b-41d4-a716-446655440193",
-            "550e8400-e29b-41d4-a716-446655440100",
-            "550e8400-e29b-41d4-a716-446655440004",
+            "550e8400-e29b-41d4-a716-446655440100",  # John Admin
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "admin",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440194",
-            "550e8400-e29b-41d4-a716-446655440101",
-            "550e8400-e29b-41d4-a716-446655440001",
+            "550e8400-e29b-41d4-a716-446655440101",  # Sarah Manager
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "admin",
         ),
-        (
-            "550e8400-e29b-41d4-a716-446655440195",
-            "550e8400-e29b-41d4-a716-446655440101",
-            "550e8400-e29b-41d4-a716-446655440002",
-            "admin",
-        ),
-        (
-            "550e8400-e29b-41d4-a716-446655440196",
-            "550e8400-e29b-41d4-a716-446655440101",
-            "550e8400-e29b-41d4-a716-446655440003",
-            "member",
-        ),
+        # Group A Members
         (
             "550e8400-e29b-41d4-a716-446655440200",
-            "550e8400-e29b-41d4-a716-446655440102",
-            "550e8400-e29b-41d4-a716-446655440001",
+            "550e8400-e29b-41d4-a716-446655440102",  # Mike Golfer
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "member",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440201",
-            "550e8400-e29b-41d4-a716-446655440103",
-            "550e8400-e29b-41d4-a716-446655440002",
+            "550e8400-e29b-41d4-a716-446655440103",  # Lisa Player
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "member",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440202",
-            "550e8400-e29b-41d4-a716-446655440104",
-            "550e8400-e29b-41d4-a716-446655440003",
+            "550e8400-e29b-41d4-a716-446655440104",  # David Pro
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "member",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440203",
-            "550e8400-e29b-41d4-a716-446655440105",
-            "550e8400-e29b-41d4-a716-446655440004",
+            "550e8400-e29b-41d4-a716-446655440105",  # Emma Champion
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
             "member",
         ),
+        # Additional Group A Members
+        (
+            "550e8400-e29b-41d4-a716-446655440204",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440205",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440206",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440207",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440208",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440209",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440210",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440211",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440212",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440213",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440214",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440215",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            "550e8400-e29b-41d4-a716-446655440001",  # Group A
+            "member",
+        ),
+        # Guest users (no memberships) - Tom Visitor, Anna Newcomer, Bob Spectator
+        # These users exist but have no group memberships, so they can't access the app
     ]
 
     membership_lines = []
@@ -425,56 +590,1259 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
 
     # Add interests
     content += "-- Insert sample interests for member users\n"
-    content += "INSERT INTO interests (id, user_id, interest_date, wants_to_play, time_preference, transportation, partners, notes) VALUES\n"
+    content += "INSERT INTO interests (id, user_id, interest_date, wants_to_play, time_preference, transportation, partners, guest_count, notes) VALUES\n"
 
     # Get current date and create some sample dates
     from datetime import datetime, timedelta
+
     today = datetime.now().date()
-    this_weekend_start = today + timedelta(days=(5 - today.weekday()) % 7)  # Next Saturday
+    this_weekend_start = today + timedelta(
+        days=(5 - today.weekday()) % 7
+    )  # Next Saturday
     this_weekend_end = this_weekend_start + timedelta(days=1)  # Sunday
     next_weekend_start = this_weekend_start + timedelta(days=7)  # Following Saturday
     next_weekend_end = next_weekend_start + timedelta(days=1)  # Following Sunday
 
     interests = [
+        # This weekend - Saturday
         (
             "550e8400-e29b-41d4-a716-446655440300",
-            "550e8400-e29b-41d4-a716-446655440102",
-            this_weekend_start.strftime('%Y-%m-%d'),
+            "550e8400-e29b-41d4-a716-446655440102",  # Mike Golfer
+            this_weekend_start.strftime("%Y-%m-%d"),
             True,
             "morning",
             "riding",
             "Mike Johnson, Tom Davis",
+            1,  # guest_count
             "Prefer early morning tee times",
         ),
         (
             "550e8400-e29b-41d4-a716-446655440301",
-            "550e8400-e29b-41d4-a716-446655440103",
-            this_weekend_end.strftime('%Y-%m-%d'),
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Robert Walker, Maria Guest",
+            0,  # guest_count
+            "Early bird, love walking the course",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440302",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Jessica Morning",
+            0,  # guest_count
+            "Walking enthusiast, prefer morning rounds",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440303",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Jessica Morning, Robert Walker",
+            2,  # guest_count
+            "Bringing my husband and son",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440304",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Linda Partner",
+            1,  # guest_count
+            "Afternoon rounds work better for my schedule",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440305",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Steve Afternoon",
+            0,  # guest_count
+            "Love afternoon rounds, walking keeps me fit",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440306",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Flexible on time and partners",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440307",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Early morning is my favorite time to play",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440308",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Late afternoon works best for me",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440309",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Love playing with friends, social aspect is important",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440310",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Prefer walking, enjoy the solitude",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440311",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            3,  # guest_count
+            "Family golf day - bringing my kids and spouse",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440312",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            this_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Business networking on the course",
+        ),
+        # This weekend - Sunday
+        (
+            "550e8400-e29b-41d4-a716-446655440313",
+            "550e8400-e29b-41d4-a716-446655440103",  # Lisa Player
+            this_weekend_end.strftime("%Y-%m-%d"),
             True,
             "mid-morning",
             "walking",
             "Sarah Wilson",
+            0,  # guest_count
             "Walking only, flexible on partners",
         ),
         (
-            "550e8400-e29b-41d4-a716-446655440302",
-            "550e8400-e29b-41d4-a716-446655440104",
-            next_weekend_start.strftime('%Y-%m-%d'),
+            "550e8400-e29b-41d4-a716-446655440314",
+            "550e8400-e29b-41d4-a716-446655440104",  # David Pro
+            this_weekend_end.strftime("%Y-%m-%d"),
             False,
             None,
             None,
             None,
+            0,  # guest_count
             None,
         ),
         (
-            "550e8400-e29b-41d4-a716-446655440303",
-            "550e8400-e29b-41d4-a716-446655440105",
-            next_weekend_end.strftime('%Y-%m-%d'),
+            "550e8400-e29b-41d4-a716-446655440315",
+            "550e8400-e29b-41d4-a716-446655440105",  # Emma Champion
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Lisa Player",
+            1,  # guest_count
+            "Early morning rounds, walking preferred",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440316",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Sunday morning golf tradition",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440317",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Jessica Morning, Emma Champion",
+            0,  # guest_count
+            "Weekend walking rounds are the best",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440318",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            1,  # guest_count
+            "Sunday afternoon with friends",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440319",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Sunday afternoon rounds are perfect",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440320",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            this_weekend_end.strftime("%Y-%m-%d"),
             True,
             "afternoon",
             "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Walking on Sunday afternoons",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440321",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Flexible on everything, just want to play",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440322",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Early Sunday morning golf",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440323",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            2,  # guest_count
+            "Late afternoon with guests",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440324",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Social golf on Sundays",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440325",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Sunday morning walking rounds",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440326",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            2,  # guest_count
+            "Family Sunday golf",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440327",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            this_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Sunday business networking",
+        ),
+        # Next weekend - Saturday
+        (
+            "550e8400-e29b-41d4-a716-446655440328",
+            "550e8400-e29b-41d4-a716-446655440102",  # Mike Golfer
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            "Jessica Morning, Robert Walker",
+            1,  # guest_count
+            "Next weekend early round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440329",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Robert Walker",
+            0,  # guest_count
+            "Next weekend morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440330",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Jessica Morning",
+            0,  # guest_count
+            "Next weekend walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440331",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            3,  # guest_count
+            "Next weekend with extended family",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440332",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Next weekend afternoon round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440333",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Next weekend walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440334",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Next weekend flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440335",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Next weekend early morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440336",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Next weekend late afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440337",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Next weekend social round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440338",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Next weekend solo walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440339",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            2,  # guest_count
+            "Next weekend family golf",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440340",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            next_weekend_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Next weekend business golf",
+        ),
+        # Next weekend - Sunday
+        (
+            "550e8400-e29b-41d4-a716-446655440341",
+            "550e8400-e29b-41d4-a716-446655440103",  # Lisa Player
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Next weekend walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440342",
+            "550e8400-e29b-41d4-a716-446655440104",  # David Pro
+            next_weekend_end.strftime("%Y-%m-%d"),
+            False,
+            None,
+            None,
+            None,
+            0,  # guest_count
+            None,
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440343",
+            "550e8400-e29b-41d4-a716-446655440105",  # Emma Champion
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
             "Lisa Player",
-            "Flexible on format, love the game",
+            1,  # guest_count
+            "Next weekend morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440344",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Next weekend Sunday morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440345",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Jessica Morning, Emma Champion",
+            0,  # guest_count
+            "Next weekend Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440346",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            2,  # guest_count
+            "Next weekend Sunday with friends",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440347",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Next weekend Sunday afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440348",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Next weekend Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440349",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Next weekend flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440350",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Next weekend early Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440351",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Next weekend late Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440352",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Next weekend social Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440353",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Next weekend solo Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440354",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            3,  # guest_count
+            "Next weekend family Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440355",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            next_weekend_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Next weekend business Sunday",
+        ),
+        # Weekend After Next - Saturday (2025-10-11)
+        (
+            "550e8400-e29b-41d4-a716-446655440356",
+            "550e8400-e29b-41d4-a716-446655440102",  # Mike Golfer
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            "Jessica Morning, Robert Walker",
+            2,  # guest_count
+            "Weekend after next early round with guests",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440357",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Robert Walker",
+            0,  # guest_count
+            "Weekend after next morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440358",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Jessica Morning",
+            0,  # guest_count
+            "Weekend after next walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440359",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            1,  # guest_count
+            "Weekend after next with family",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440360",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Weekend after next afternoon round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440361",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Weekend after next walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440362",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Weekend after next flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440363",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Weekend after next early morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440364",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Weekend after next late afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440365",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Weekend after next social round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440366",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Weekend after next solo walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440367",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            2,  # guest_count
+            "Weekend after next family golf",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440368",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            weekend_after_next_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Weekend after next business golf",
+        ),
+        # Weekend After Next - Sunday (2025-10-12)
+        (
+            "550e8400-e29b-41d4-a716-446655440369",
+            "550e8400-e29b-41d4-a716-446655440103",  # Lisa Player
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Weekend after next walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440370",
+            "550e8400-e29b-41d4-a716-446655440104",  # David Pro
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            False,
+            None,
+            None,
+            None,
+            0,  # guest_count
+            None,
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440371",
+            "550e8400-e29b-41d4-a716-446655440105",  # Emma Champion
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Lisa Player",
+            1,  # guest_count
+            "Weekend after next morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440372",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Weekend after next Sunday morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440373",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Jessica Morning, Emma Champion",
+            0,  # guest_count
+            "Weekend after next Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440374",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            2,  # guest_count
+            "Weekend after next Sunday with friends",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440375",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Weekend after next Sunday afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440376",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Weekend after next Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440377",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Weekend after next flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440378",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Weekend after next early Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440379",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Weekend after next late Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440380",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Weekend after next social Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440381",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Weekend after next solo Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440382",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            3,  # guest_count
+            "Weekend after next family Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440383",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            weekend_after_next_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Weekend after next business Sunday",
+        ),
+        # Weekend in Month - Saturday (2025-10-25)
+        (
+            "550e8400-e29b-41d4-a716-446655440384",
+            "550e8400-e29b-41d4-a716-446655440102",  # Mike Golfer
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            "Jessica Morning, Robert Walker",
+            1,  # guest_count
+            "Weekend in month early round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440385",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Robert Walker",
+            0,  # guest_count
+            "Weekend in month morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440386",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Mike Golfer, Jessica Morning",
+            0,  # guest_count
+            "Weekend in month walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440387",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            2,  # guest_count
+            "Weekend in month with family",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440388",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Weekend in month afternoon round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440389",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Weekend in month walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440390",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Weekend in month flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440391",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Weekend in month early morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440392",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Weekend in month late afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440393",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Weekend in month social round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440394",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Weekend in month solo walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440395",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            2,  # guest_count
+            "Weekend in month family golf",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440396",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            weekend_month_start.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Weekend in month business golf",
+        ),
+        # Weekend in Month - Sunday (2025-10-26)
+        (
+            "550e8400-e29b-41d4-a716-446655440397",
+            "550e8400-e29b-41d4-a716-446655440103",  # Lisa Player
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Weekend in month walking round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440398",
+            "550e8400-e29b-41d4-a716-446655440104",  # David Pro
+            weekend_month_end.strftime("%Y-%m-%d"),
+            False,
+            None,
+            None,
+            None,
+            0,  # guest_count
+            None,
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440399",
+            "550e8400-e29b-41d4-a716-446655440105",  # Emma Champion
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Lisa Player",
+            1,  # guest_count
+            "Weekend in month morning walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440400",
+            "550e8400-e29b-41d4-a716-446655440109",  # Jessica Morning
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Emma Champion",
+            0,  # guest_count
+            "Weekend in month Sunday morning",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440401",
+            "550e8400-e29b-41d4-a716-446655440110",  # Robert Walker
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Jessica Morning, Emma Champion",
+            0,  # guest_count
+            "Weekend in month Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440402",
+            "550e8400-e29b-41d4-a716-446655440111",  # Maria Guest
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Steve Afternoon, Linda Partner",
+            1,  # guest_count
+            "Weekend in month Sunday with friends",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440403",
+            "550e8400-e29b-41d4-a716-446655440112",  # Steve Afternoon
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Maria Guest, Linda Partner",
+            0,  # guest_count
+            "Weekend in month Sunday afternoon",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440404",
+            "550e8400-e29b-41d4-a716-446655440113",  # Linda Partner
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "walking",
+            "Maria Guest, Steve Afternoon",
+            0,  # guest_count
+            "Weekend in month Sunday walk",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440405",
+            "550e8400-e29b-41d4-a716-446655440114",  # Chris Flexible
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            None,
+            0,  # guest_count
+            "Weekend in month flexible round",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440406",
+            "550e8400-e29b-41d4-a716-446655440115",  # Amanda Early
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Kevin Late",
+            0,  # guest_count
+            "Weekend in month early Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440407",
+            "550e8400-e29b-41d4-a716-446655440116",  # Kevin Late
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "late-afternoon",
+            "riding",
+            "Amanda Early",
+            1,  # guest_count
+            "Weekend in month late Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440408",
+            "550e8400-e29b-41d4-a716-446655440117",  # Sophie Social
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "mid-morning",
+            "riding",
+            "Marcus Solo, Rachel Family",
+            0,  # guest_count
+            "Weekend in month social Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440409",
+            "550e8400-e29b-41d4-a716-446655440118",  # Marcus Solo
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "morning",
+            "walking",
+            "Sophie Social",
+            0,  # guest_count
+            "Weekend in month solo Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440410",
+            "550e8400-e29b-41d4-a716-446655440119",  # Rachel Family
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Sophie Social, Daniel Business",
+            3,  # guest_count
+            "Weekend in month family Sunday",
+        ),
+        (
+            "550e8400-e29b-41d4-a716-446655440411",
+            "550e8400-e29b-41d4-a716-446655440120",  # Daniel Business
+            weekend_month_end.strftime("%Y-%m-%d"),
+            True,
+            "afternoon",
+            "riding",
+            "Rachel Family",
+            1,  # guest_count
+            "Weekend in month business Sunday",
         ),
     ]
 
@@ -487,17 +1855,34 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
         time_preference,
         transportation,
         partners,
+        guest_count,
         notes,
     ) in interests:
         if expected_user_id in id_mapping:
             actual_user_id = id_mapping[expected_user_id]
-            wants_to_play_str = "true" if wants_to_play else "false" if wants_to_play is False else "NULL"
+            wants_to_play_str = (
+                "true"
+                if wants_to_play
+                else "false" if wants_to_play is False else "NULL"
+            )
             time_pref_str = f"'{time_preference}'" if time_preference else "NULL"
             transport_str = f"'{transportation}'" if transportation else "NULL"
-            partners_str = f"'{partners}'" if partners else "NULL"
+
+            # Convert partners from names to JSON array of IDs
+            if partners:
+                partner_ids = convert_partners_to_ids(partners)
+                if partner_ids:
+                    import json
+
+                    partners_str = f"'{json.dumps(partner_ids)}'"
+                else:
+                    partners_str = "NULL"
+            else:
+                partners_str = "NULL"
+            guest_count_str = str(guest_count) if guest_count is not None else "0"
             notes_str = f"'{notes}'" if notes else "NULL"
             interest_lines.append(
-                f"  ('{interest_id}', '{actual_user_id}', '{interest_date}', {wants_to_play_str}, {time_pref_str}, {transport_str}, {partners_str}, {notes_str})"
+                f"  ('{interest_id}', '{actual_user_id}', '{interest_date}', {wants_to_play_str}, {time_pref_str}, {transport_str}, {partners_str}, {guest_count_str}, {notes_str})"
             )
 
     if interest_lines:
@@ -508,7 +1893,7 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
     content += "INSERT INTO assignments (id, weekend_id, user_id, tee_time_id) VALUES\n"
 
     assignments = [
-        # Group A assignments (This Weekend - Saturday 8:00 AM)
+        # Group A assignments (This Weekend - Saturday 8:00 AM) - Max 3 players
         (
             "550e8400-e29b-41d4-a716-446655440400",
             "550e8400-e29b-41d4-a716-446655440010",
@@ -521,12 +1906,7 @@ INSERT INTO tee_times (id, weekend_id, tee_date, tee_time, group_id, max_players
             "550e8400-e29b-41d4-a716-446655440100",
             "550e8400-e29b-41d4-a716-446655440020",
         ),
-        (
-            "550e8400-e29b-41d4-a716-446655440405",
-            "550e8400-e29b-41d4-a716-446655440010",
-            "550e8400-e29b-41d4-a716-446655440106",
-            "550e8400-e29b-41d4-a716-446655440020",
-        ),
+        # Removed third assignment to prevent overbooking (max 3 players)
         # Group A assignments (This Weekend - Sunday 8:00 AM)
         (
             "550e8400-e29b-41d4-a716-446655440406",

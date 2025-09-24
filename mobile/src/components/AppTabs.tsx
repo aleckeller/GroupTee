@@ -22,7 +22,7 @@ type TabConfig = {
 const ADMIN_TABS: TabConfig[] = [
   { name: "Dashboard", component: Dashboard, title: "Dashboard" },
   { name: "Interest", component: CalendarInterestScreen, title: "Interest" },
-  { name: "Trades", component: TradesScreen, title: "Trades" },
+  // { name: "Trades", component: TradesScreen, title: "Trades" }, // Temporarily disabled
   { name: "Users", component: AdminRoleManager, title: "Users" },
 ];
 

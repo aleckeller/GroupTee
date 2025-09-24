@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -15,10 +15,18 @@ import { useTeeTimes } from "@/hooks/useTeeTimes";
 import { useMyTeeTimes } from "@/hooks/useMyTeeTimes";
 import { useWeekends } from "@/hooks/useWeekends";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useGroupInterests } from "@/hooks/useGroupInterests";
 import { groupTeeTimesByWeekend } from "@/utils/teeTimeUtils";
 import StatsCard from "@/components/StatsCard";
 import WeekendSection from "@/components/WeekendSection";
 import NotificationCard from "@/components/NotificationCard";
+
+import {
+  setJustReturnedFromAssignment,
+  getJustReturnedFromAssignment,
+  getHasAssignmentChanges,
+  clearAssignmentState,
+} from "@/utils/navigationState";
 
 export default function Dashboard() {
   const { user, userProfile } = useAuth();
@@ -54,6 +62,11 @@ export default function Dashboard() {
     deleteNotification,
     refresh: refreshNotifications,
   } = useNotifications(user?.id || null);
+  const {
+    interests,
+    loading: interestsLoading,
+    refresh: refreshInterests,
+  } = useGroupInterests(selectedGroup?.id || null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Track when notifications are modified to prevent unnecessary refreshes
@@ -70,9 +83,30 @@ export default function Dashboard() {
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      const justReturned = getJustReturnedFromAssignment();
+      const hasChanges = getHasAssignmentChanges();
+
+      if (justReturned) {
+        // Clear the assignment state flags
+        clearAssignmentState();
+
+        // If there were assignment changes, refresh the data
+        if (hasChanges) {
+          if (selectedGroup?.id) {
+            refreshTeeTimes();
+            refreshMyTeeTimes();
+            refreshInterests();
+          }
+        }
+        // If no changes, don't refresh to preserve scroll position
+        return;
+      }
+
+      // Normal refresh when not returning from assignment
       if (selectedGroup?.id) {
         refreshTeeTimes();
         refreshMyTeeTimes();
+        refreshInterests();
       }
       // Only refresh notifications if none were deleted in this session
       if (!notificationsDeleted) {
@@ -82,6 +116,7 @@ export default function Dashboard() {
       selectedGroup?.id,
       refreshTeeTimes,
       refreshMyTeeTimes,
+      refreshInterests,
       refreshNotifications,
       notificationsDeleted,
     ])
@@ -97,6 +132,7 @@ export default function Dashboard() {
         refreshTeeTimes(),
         refreshMyTeeTimes(),
         refreshWeekends(),
+        refreshInterests(),
         refreshNotifications(),
       ]);
     } catch (error) {
@@ -286,6 +322,7 @@ export default function Dashboard() {
                         weekendId={weekend.id}
                         weekend={weekend}
                         teeTimes={weekendTeeTimes}
+                        interests={interests}
                       />
                     </View>
                   );

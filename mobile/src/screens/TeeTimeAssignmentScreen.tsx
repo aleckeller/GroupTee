@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,20 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { supabase } from "@/lib/supabase";
-import { useGroupMembers, GroupMember } from "@/hooks/useGroupMembers";
+import { useGroupMembers } from "@/hooks/useGroupMembers";
 import { useGroup } from "@/hooks/useGroup";
+import {
+  useInterestsForDate,
+  InterestWithProfile,
+} from "@/hooks/useInterestsForDate";
 import { formatDate, formatTime } from "@/utils/formatting";
-import { TeeTime, Player } from "@/utils/teeTimeUtils";
+import { setHasAssignmentChanges } from "@/utils/navigationState";
+import { GroupMember, TeeTime, Player } from "../types";
 import RoleGuard from "@/components/RoleGuard";
 
 type RouteParams = {
@@ -27,20 +34,89 @@ export default function TeeTimeAssignmentScreen() {
   const { members, loading: membersLoading } = useGroupMembers(
     selectedGroup?.id || null
   );
+  const { interests, loading: interestsLoading } = useInterestsForDate(
+    teeTime.tee_date,
+    selectedGroup?.id || null
+  );
 
   const [assignedPlayers, setAssignedPlayers] = useState<Player[]>(
     teeTime.players || []
   );
   const [loading, setLoading] = useState(false);
   const [aiAssigning, setAiAssigning] = useState(false);
+  const [showAllMembers, setShowAllMembers] = useState(false);
+  const [guestNames, setGuestNames] = useState<{ [key: string]: string[] }>({});
+  const [editingGuest, setEditingGuest] = useState<{
+    player: Player;
+    guestNumber: number;
+  } | null>(null);
+  const [guestNameInput, setGuestNameInput] = useState("");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
-  const isFull = assignedPlayers.length >= teeTime.max_players;
+  // Load existing guest names when component mounts
+  useEffect(() => {
+    const loadGuestNames = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("assignments")
+          .select("user_id, guest_names")
+          .eq("tee_time_id", teeTime.id);
+
+        if (error) {
+          console.error("Error loading guest names:", error);
+          return;
+        }
+
+        const guestNamesMap: { [key: string]: string[] } = {};
+        data?.forEach((assignment) => {
+          if (assignment.guest_names && assignment.guest_names.length > 0) {
+            guestNamesMap[assignment.user_id] = assignment.guest_names;
+          }
+        });
+
+        setGuestNames(guestNamesMap);
+      } catch (error) {
+        console.error("Error loading guest names:", error);
+      }
+    };
+
+    loadGuestNames();
+  }, [teeTime.id]);
+
+  // Calculate total spots needed including guests
+  const getTotalSpotsNeeded = (member: GroupMember) => {
+    const memberInterest = getMemberInterest(member.id);
+    return 1 + (memberInterest?.guest_count || 0); // 1 for member + guest count
+  };
+
+  const getCurrentTotalSpots = () => {
+    return assignedPlayers.reduce((total, player) => {
+      // Find the member's interest to get their guest count
+      const memberInterest = interests?.find(
+        (interest) => interest.user_id === player.id
+      );
+      return total + 1 + (memberInterest?.guest_count || 0);
+    }, 0);
+  };
+
+  const isFull = getCurrentTotalSpots() >= teeTime.max_players;
 
   const handleAssignPlayer = async (member: GroupMember) => {
-    if (isFull) {
+    const memberInterest = getMemberInterest(member.id);
+    const spotsNeeded = getTotalSpotsNeeded(member);
+    const currentSpots = getCurrentTotalSpots();
+    const availableSpots = teeTime.max_players - currentSpots;
+
+    if (spotsNeeded > availableSpots) {
       Alert.alert(
-        "Tee Time Full",
-        "This tee time is already at maximum capacity."
+        "Not Enough Space",
+        `This member needs ${spotsNeeded} spot${
+          spotsNeeded > 1 ? "s" : ""
+        } (including ${memberInterest?.guest_count || 0} guest${
+          (memberInterest?.guest_count || 0) > 1 ? "s" : ""
+        }), but only ${availableSpots} spot${availableSpots > 1 ? "s" : ""} ${
+          availableSpots === 1 ? "is" : "are"
+        } available.`
       );
       return;
     }
@@ -53,11 +129,18 @@ export default function TeeTimeAssignmentScreen() {
       return;
     }
 
+    const guestText =
+      (memberInterest?.guest_count || 0) > 0
+        ? ` and ${memberInterest?.guest_count || 0} guest${
+            (memberInterest?.guest_count || 0) > 1 ? "s" : ""
+          }`
+        : "";
+
     Alert.alert(
       "Assign Player",
       `Are you sure you want to assign ${
         member.full_name || "this player"
-      } to this tee time?`,
+      }${guestText} to this tee time?`,
       [
         { text: "Cancel", style: "cancel" },
         { text: "Assign", onPress: () => assignPlayer(member) },
@@ -89,6 +172,9 @@ export default function TeeTimeAssignmentScreen() {
       };
       setAssignedPlayers([...assignedPlayers, newPlayer]);
 
+      // Mark that there were assignment changes
+      setHasAssignmentChanges(true);
+
       Alert.alert(
         "Success",
         `${member.full_name || "Player"} has been assigned to this tee time.`
@@ -102,9 +188,19 @@ export default function TeeTimeAssignmentScreen() {
   };
 
   const handleRemovePlayer = async (player: Player) => {
+    const memberInterest = interests?.find(
+      (interest) => interest.user_id === player.id
+    );
+    const guestCount = memberInterest?.guest_count || 0;
+
+    const guestText =
+      guestCount > 0
+        ? ` and their ${guestCount} guest${guestCount > 1 ? "s" : ""}`
+        : "";
+
     Alert.alert(
       "Remove Player",
-      `Are you sure you want to remove ${player.full_name} from this tee time?`,
+      `Are you sure you want to remove ${player.full_name}${guestText} from this tee time?`,
       [
         { text: "Cancel", style: "cancel" },
         { text: "Remove", onPress: () => removePlayer(player) },
@@ -131,9 +227,21 @@ export default function TeeTimeAssignmentScreen() {
       // Update local state
       setAssignedPlayers(assignedPlayers.filter((p) => p.id !== player.id));
 
+      // Mark that there were assignment changes
+      setHasAssignmentChanges(true);
+
+      const memberInterest = interests?.find(
+        (interest) => interest.user_id === player.id
+      );
+      const guestCount = memberInterest?.guest_count || 0;
+      const guestText =
+        guestCount > 0
+          ? ` and their ${guestCount} guest${guestCount > 1 ? "s" : ""}`
+          : "";
+
       Alert.alert(
         "Success",
-        `${player.full_name} has been removed from this tee time.`
+        `${player.full_name}${guestText} has been removed from this tee time.`
       );
     } catch (error) {
       console.error("Error in removePlayer:", error);
@@ -143,9 +251,233 @@ export default function TeeTimeAssignmentScreen() {
     }
   };
 
+  const handleEditGuestName = (player: Player, guestNumber: number) => {
+    const currentGuestNames = guestNames[player.id] || [];
+    const currentName =
+      currentGuestNames[guestNumber - 1] ||
+      `${player.full_name}'s Guest ${guestNumber}`;
+    setEditingGuest({ player, guestNumber });
+    setGuestNameInput(currentName);
+  };
+
+  const saveGuestName = async () => {
+    if (!editingGuest) return;
+
+    try {
+      setLoading(true);
+      const { player, guestNumber } = editingGuest;
+      const currentGuestNames = guestNames[player.id] || [];
+      const newGuestNames = [...currentGuestNames];
+      newGuestNames[guestNumber - 1] = guestNameInput;
+
+      // Update the assignment with guest names
+      const { error } = await supabase
+        .from("assignments")
+        .update({ guest_names: newGuestNames })
+        .eq("tee_time_id", teeTime.id)
+        .eq("user_id", player.id);
+
+      if (error) {
+        console.error("Error updating guest names:", error);
+        Alert.alert("Error", "Failed to update guest name.");
+        return;
+      }
+
+      // Update local state
+      setGuestNames((prev) => ({
+        ...prev,
+        [player.id]: newGuestNames,
+      }));
+
+      setEditingGuest(null);
+      setGuestNameInput("");
+    } catch (error) {
+      console.error("Error saving guest name:", error);
+      Alert.alert("Error", "Failed to save guest name.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getAvailableMembers = () => {
+    if (showAllMembers) {
+      // Show all members when toggle is on
+      return members.filter(
+        (member) => !assignedPlayers.some((player) => player.id === member.id)
+      );
+    } else {
+      // Show only members who have submitted interest for this date
+      const interestedMemberIds = new Set(
+        interests.map((interest) => interest.user_id)
+      );
+
+      return members.filter(
+        (member) =>
+          interestedMemberIds.has(member.id) &&
+          !assignedPlayers.some((player) => player.id === member.id)
+      );
+    }
+  };
+
+  const getMemberInterest = (
+    memberId: string
+  ): InterestWithProfile | undefined => {
+    return interests.find((interest) => interest.user_id === memberId);
+  };
+
+  // Get primary preferences to show on main card (time + guests)
+  const getPrimaryPreferences = (
+    memberInterest: InterestWithProfile | undefined
+  ) => {
+    if (!memberInterest) return [];
+
+    const preferences = [];
+
+    // Always show time preference if available
+    if (memberInterest.time_preference) {
+      preferences.push({
+        type: "time",
+        value: memberInterest.time_preference,
+        icon: "🕐",
+        label: memberInterest.time_preference,
+      });
+    }
+
+    // Always show guests if available
+    if ((memberInterest.guest_count || 0) > 0) {
+      preferences.push({
+        type: "guests",
+        count: memberInterest.guest_count || 0,
+        icon: "👥",
+        label: `+${memberInterest.guest_count || 0} guest${
+          (memberInterest.guest_count || 0) > 1 ? "s" : ""
+        }`,
+      });
+    }
+
+    return preferences;
+  };
+
+  // Get secondary preferences (transportation, partners, notes) for expanded view
+  const getSecondaryPreferences = (
+    memberInterest: InterestWithProfile | undefined,
+    allMembers: GroupMember[] = []
+  ) => {
+    if (!memberInterest) return [];
+
+    const preferences = [];
+
+    if (memberInterest.transportation) {
+      preferences.push({
+        type: "transportation",
+        value: memberInterest.transportation,
+        icon: memberInterest.transportation === "walking" ? "🚶" : "🏌️",
+        label:
+          memberInterest.transportation === "walking" ? "Walking" : "Riding",
+      });
+    }
+
+    // Parse and display preferred partners
+    if (memberInterest.partners) {
+      try {
+        // Handle different formats of partners data
+        let partnersArray;
+
+        if (typeof memberInterest.partners === "string") {
+          // Try to parse as JSON first
+          try {
+            partnersArray = JSON.parse(memberInterest.partners);
+          } catch (jsonError) {
+            // If JSON parsing fails, try to split by comma (legacy format)
+            console.log(
+              "JSON parse failed, trying comma split for partners:",
+              memberInterest.partners
+            );
+            partnersArray = memberInterest.partners
+              .split(",")
+              .map((id) => id.trim())
+              .filter(Boolean);
+          }
+        } else if (Array.isArray(memberInterest.partners)) {
+          // Already an array
+          partnersArray = memberInterest.partners;
+        } else {
+          console.log(
+            "Unexpected partners format:",
+            typeof memberInterest.partners,
+            memberInterest.partners
+          );
+          return preferences;
+        }
+
+        if (Array.isArray(partnersArray) && partnersArray.length > 0) {
+          // Get partner names from member IDs
+          const partnerNames = partnersArray
+            .map((partnerId) => {
+              const partner = allMembers.find(
+                (member) => member.id === partnerId
+              );
+              return partner ? partner.full_name : null;
+            })
+            .filter(Boolean);
+
+          if (partnerNames.length > 0) {
+            preferences.push({
+              type: "partners",
+              value: partnersArray, // Store the original member IDs
+              icon: "👥",
+              label: `Preferred Partners: ${partnerNames.join(", ")}`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Error parsing partners:",
+          error,
+          "Raw partners data:",
+          memberInterest.partners
+        );
+      }
+    }
+
+    if (memberInterest.notes) {
+      preferences.push({
+        type: "notes",
+        value: memberInterest.notes,
+        icon: "📝",
+        label:
+          memberInterest.notes.length > 20
+            ? memberInterest.notes.substring(0, 20) + "..."
+            : memberInterest.notes,
+      });
+    }
+
+    return preferences;
+  };
+
+  // Toggle card expansion
+  const toggleCardExpansion = (memberId: string) => {
+    setExpandedCards((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
+  };
+
+  const getInterestedMembers = () => {
+    // Always return only interested members for AI assignment
+    const interestedMemberIds = new Set(
+      interests.map((interest) => interest.user_id)
+    );
+
     return members.filter(
-      (member) => !assignedPlayers.some((player) => player.id === member.id)
+      (member) =>
+        interestedMemberIds.has(member.id) &&
+        !assignedPlayers.some((player) => player.id === member.id)
     );
   };
 
@@ -158,21 +490,19 @@ export default function TeeTimeAssignmentScreen() {
       return;
     }
 
-    const availableMembers = getAvailableMembers();
-    if (availableMembers.length === 0) {
+    const interestedMembers = getInterestedMembers();
+    if (interestedMembers.length === 0) {
       Alert.alert(
-        "No Available Members",
-        "There are no available members to auto-assign."
+        "No Interested Members",
+        "There are no interested members to auto-assign for this date."
       );
       return;
     }
 
+    const availableSpots = teeTime.max_players - getCurrentTotalSpots();
     Alert.alert(
       "AI Auto-Assignment",
-      `AI will automatically assign players to this tee time based on their preferences. This will assign up to ${Math.min(
-        availableMembers.length,
-        teeTime.max_players - assignedPlayers.length
-      )} players.`,
+      `AI will automatically assign interested players to this tee time based on their preferences. This will assign players up to the available capacity of ${availableSpots} spots.`,
       [
         { text: "Cancel", style: "cancel" },
         { text: "Auto-Assign", onPress: () => performAiAutoAssign() },
@@ -187,18 +517,26 @@ export default function TeeTimeAssignmentScreen() {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Mock AI assignment logic - randomly select available members
-      const availableMembers = getAvailableMembers();
-      const maxToAssign = Math.min(
-        availableMembers.length,
-        teeTime.max_players - assignedPlayers.length
-      );
+      // Mock AI assignment logic - select interested members considering guest counts
+      const interestedMembers = getInterestedMembers();
+      const availableSpots = teeTime.max_players - getCurrentTotalSpots();
 
-      // Randomly select members to assign (simulating AI preference-based selection)
-      const shuffledMembers = [...availableMembers].sort(
+      // Select members that fit within available capacity
+      const selectedMembers: GroupMember[] = [];
+      let usedSpots = 0;
+
+      // Randomly shuffle members for AI selection
+      const shuffledMembers = [...interestedMembers].sort(
         () => Math.random() - 0.5
       );
-      const selectedMembers = shuffledMembers.slice(0, maxToAssign);
+
+      for (const member of shuffledMembers) {
+        const spotsNeeded = getTotalSpotsNeeded(member);
+        if (usedSpots + spotsNeeded <= availableSpots) {
+          selectedMembers.push(member);
+          usedSpots += spotsNeeded;
+        }
+      }
 
       // Create mock assignments
       const newPlayers: Player[] = selectedMembers.map((member) => ({
@@ -223,9 +561,20 @@ export default function TeeTimeAssignmentScreen() {
       // Update local state
       setAssignedPlayers([...assignedPlayers, ...newPlayers]);
 
+      // Mark that there were assignment changes
+      setHasAssignmentChanges(true);
+
+      const totalSpotsUsed = selectedMembers.reduce((total, member) => {
+        return total + getTotalSpotsNeeded(member);
+      }, 0);
+
       Alert.alert(
         "Auto-Assignment Complete",
-        `Successfully assigned ${newPlayers.length} players to this tee time.`
+        `Successfully assigned ${selectedMembers.length} member${
+          selectedMembers.length > 1 ? "s" : ""
+        } using ${totalSpotsUsed} spot${
+          totalSpotsUsed > 1 ? "s" : ""
+        } to this tee time.`
       );
     } catch (error) {
       console.error("Error in AI auto-assignment:", error);
@@ -238,11 +587,13 @@ export default function TeeTimeAssignmentScreen() {
     }
   };
 
-  if (membersLoading) {
+  if (membersLoading || interestsLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0ea5e9" />
-        <Text style={styles.loadingText}>Loading group members...</Text>
+        <Text style={styles.loadingText}>
+          Loading group members and interests...
+        </Text>
       </View>
     );
   }
@@ -260,11 +611,11 @@ export default function TeeTimeAssignmentScreen() {
             {formatDate(teeTime.tee_date)} at {formatTime(teeTime.tee_time)}
           </Text>
           <Text style={styles.capacityInfo}>
-            {assignedPlayers.length} / {teeTime.max_players} players assigned
+            {getCurrentTotalSpots()} / {teeTime.max_players} spots used
           </Text>
 
           {/* AI Auto-Assignment Button */}
-          {!isFull && getAvailableMembers().length > 0 && (
+          {!isFull && getInterestedMembers().length > 0 && (
             <Pressable
               style={[styles.aiButton, aiAssigning && styles.aiButtonDisabled]}
               onPress={handleAiAutoAssign}
@@ -296,75 +647,275 @@ export default function TeeTimeAssignmentScreen() {
             </View>
           ) : (
             <View style={styles.playersList}>
-              {assignedPlayers.map((player) => (
-                <View key={player.id} style={styles.assignedPlayerCard}>
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.playerIcon}>👤</Text>
-                    <Text style={styles.playerName}>{player.full_name}</Text>
-                  </View>
-                  <Pressable
-                    style={styles.removeButton}
-                    onPress={() => handleRemovePlayer(player)}
-                    disabled={loading}
-                  >
-                    <Text style={styles.removeButtonText}>Remove</Text>
-                  </Pressable>
-                </View>
-              ))}
+              {assignedPlayers
+                .map((player) => {
+                  const memberInterest = interests?.find(
+                    (interest) => interest.user_id === player.id
+                  );
+                  const guestCount = memberInterest?.guest_count || 0;
+
+                  // Create array of all spots (member + guests)
+                  const allSpots = [
+                    {
+                      id: player.id,
+                      name: player.full_name,
+                      isGuest: false,
+                      guestNumber: 0,
+                    },
+                  ];
+
+                  // Add guest spots
+                  const playerGuestNames = guestNames[player.id] || [];
+                  for (let i = 1; i <= guestCount; i++) {
+                    const guestName =
+                      playerGuestNames[i - 1] ||
+                      `${player.full_name}'s Guest ${i}`;
+                    allSpots.push({
+                      id: `${player.id}_guest_${i}`,
+                      name: guestName,
+                      isGuest: true,
+                      guestNumber: i,
+                    });
+                  }
+
+                  return allSpots.map((spot) => (
+                    <View key={spot.id} style={styles.assignedPlayerCard}>
+                      <View style={styles.playerInfo}>
+                        <Text style={styles.playerIcon}>
+                          {spot.isGuest ? "👥" : "👤"}
+                        </Text>
+                        {spot.isGuest ? (
+                          <Pressable
+                            style={styles.editableNameContainer}
+                            onPress={() =>
+                              handleEditGuestName(player, spot.guestNumber)
+                            }
+                          >
+                            <Text style={styles.playerName}>{spot.name}</Text>
+                            <Text style={styles.editIcon}>✏️</Text>
+                          </Pressable>
+                        ) : (
+                          <Text style={styles.playerName}>{spot.name}</Text>
+                        )}
+                      </View>
+                      <Pressable
+                        style={[
+                          styles.removeButton,
+                          spot.isGuest && styles.removeButtonDisabled,
+                        ]}
+                        onPress={() => handleRemovePlayer(player)}
+                        disabled={loading || spot.isGuest}
+                      >
+                        <Text
+                          style={[
+                            styles.removeButtonText,
+                            spot.isGuest && styles.removeButtonTextDisabled,
+                          ]}
+                        >
+                          Remove
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ));
+                })
+                .flat()}
             </View>
           )}
         </View>
 
         {/* Available Members */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Available Members {isFull && "(Tee Time Full)"}
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {showAllMembers ? "All Members" : "Interested Members"}{" "}
+              {isFull && "(Tee Time Full)"}
+            </Text>
+          </View>
+          <View style={styles.toggleContainer}>
+            <Text style={styles.toggleLabel}>Show all members</Text>
+            <Pressable
+              style={[styles.toggle, showAllMembers && styles.toggleActive]}
+              onPress={() => setShowAllMembers(!showAllMembers)}
+            >
+              <View
+                style={[
+                  styles.toggleThumb,
+                  showAllMembers && styles.toggleThumbActive,
+                ]}
+              />
+            </Pressable>
+          </View>
           {getAvailableMembers().length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>
-                {isFull ? "Tee time is full" : "No available members to assign"}
+                {isFull
+                  ? "Tee time is full"
+                  : showAllMembers
+                  ? "No available members to assign"
+                  : "No members have submitted interest for this date"}
               </Text>
             </View>
           ) : (
             <View style={styles.membersList}>
-              {getAvailableMembers().map((member) => (
-                <Pressable
-                  key={member.id}
-                  style={[
-                    styles.memberCard,
-                    isFull && styles.memberCardDisabled,
-                  ]}
-                  onPress={() => handleAssignPlayer(member)}
-                  disabled={isFull || loading}
-                >
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberIcon}>👤</Text>
-                    <View style={styles.memberDetails}>
-                      <Text style={styles.memberName}>
-                        {member.full_name || "Unknown"}
-                      </Text>
-                      <View
-                        style={[
-                          styles.roleBadge,
-                          member.role === "admin"
-                            ? styles.roleAdmin
-                            : member.role === "member"
-                            ? styles.roleMember
-                            : styles.roleGuest,
-                        ]}
-                      >
-                        <Text style={styles.roleText}>{member.role}</Text>
+              {getAvailableMembers().map((member) => {
+                const memberInterest = getMemberInterest(member.id);
+                const isExpanded = expandedCards.has(member.id);
+                const primaryPreferences =
+                  getPrimaryPreferences(memberInterest);
+                const secondaryPreferences = getSecondaryPreferences(
+                  memberInterest,
+                  members
+                );
+                const hasSecondaryPreferences = secondaryPreferences.length > 0;
+
+                return (
+                  <View key={member.id} style={styles.memberCardContainer}>
+                    <Pressable
+                      style={[
+                        styles.memberCard,
+                        isFull && styles.memberCardDisabled,
+                      ]}
+                      onPress={() => handleAssignPlayer(member)}
+                      disabled={isFull || loading}
+                    >
+                      <View style={styles.memberInfo}>
+                        <Text style={styles.memberIcon}>👤</Text>
+                        <View style={styles.memberDetails}>
+                          <Text style={styles.memberName}>
+                            {member.full_name || "Unknown"}
+                          </Text>
+                          <View
+                            style={[
+                              styles.roleBadge,
+                              member.role === "admin"
+                                ? styles.roleAdmin
+                                : member.role === "member"
+                                ? styles.roleMember
+                                : styles.roleGuest,
+                            ]}
+                          >
+                            <Text style={styles.roleText}>{member.role}</Text>
+                          </View>
+                          {memberInterest && primaryPreferences.length > 0 && (
+                            <View style={styles.primaryPreferencesContainer}>
+                              <View style={styles.preferencesRow}>
+                                {primaryPreferences.map((preference, index) => (
+                                  <View
+                                    key={index}
+                                    style={[
+                                      styles.preferenceBadge,
+                                      preference.type === "guests" &&
+                                        styles.guestBadge,
+                                      preference.type === "time" &&
+                                        styles.timePreferenceBadge,
+                                    ]}
+                                  >
+                                    <Text style={styles.preferenceIcon}>
+                                      {preference.icon}
+                                    </Text>
+                                    <Text style={styles.preferenceLabel}>
+                                      {preference.label}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    </View>
+                      <View style={styles.cardActions}>
+                        <Text style={styles.assignButtonText}>Assign</Text>
+                      </View>
+                    </Pressable>
+
+                    {/* Expandable section */}
+                    {memberInterest && hasSecondaryPreferences && (
+                      <Pressable
+                        style={styles.expandButton}
+                        onPress={() => toggleCardExpansion(member.id)}
+                      >
+                        <Text style={styles.expandButtonText}>
+                          {isExpanded ? "Show Less" : "Show More Preferences"}
+                        </Text>
+                        <Text style={styles.expandIcon}>
+                          {isExpanded ? "▲" : "▼"}
+                        </Text>
+                      </Pressable>
+                    )}
+
+                    {/* Expanded preferences */}
+                    {isExpanded &&
+                      memberInterest &&
+                      secondaryPreferences.length > 0 && (
+                        <View style={styles.expandedPreferences}>
+                          <View style={styles.preferencesRow}>
+                            {secondaryPreferences.map((preference, index) => (
+                              <View
+                                key={index}
+                                style={[
+                                  styles.preferenceBadge,
+                                  preference.type === "transportation" &&
+                                    styles.transportationBadge,
+                                  preference.type === "partners" &&
+                                    styles.partnersBadge,
+                                  preference.type === "notes" &&
+                                    styles.notesBadge,
+                                ]}
+                              >
+                                <Text style={styles.preferenceIcon}>
+                                  {preference.icon}
+                                </Text>
+                                <Text style={styles.preferenceLabel}>
+                                  {preference.label}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
                   </View>
-                  <Text style={styles.assignButtonText}>Assign</Text>
-                </Pressable>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Guest Name Edit Modal */}
+      <Modal
+        visible={editingGuest !== null}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditingGuest(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Guest Name</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={guestNameInput}
+              onChangeText={setGuestNameInput}
+              placeholder="Enter guest name"
+              autoFocus={true}
+            />
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setEditingGuest(null)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={saveGuestName}
+                disabled={loading}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </RoleGuard>
   );
 }
@@ -421,6 +972,42 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     marginBottom: 12,
   },
+  sectionHeader: {
+    marginBottom: 8,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+    justifyContent: "flex-start",
+  },
+  toggleLabel: {
+    fontSize: 14,
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  toggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#e2e8f0",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: "#0ea5e9",
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    alignSelf: "flex-start",
+  },
+  toggleThumbActive: {
+    alignSelf: "flex-end",
+  },
   emptyState: {
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
@@ -473,6 +1060,77 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  removeButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    opacity: 0.6,
+  },
+  removeButtonTextDisabled: {
+    color: "#9ca3af",
+  },
+  editableNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  editIcon: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    width: "80%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+  saveButton: {
+    backgroundColor: "#0ea5e9",
+  },
+  cancelButtonText: {
+    color: "#374151",
+    fontWeight: "500",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   membersList: {
     gap: 8,
   },
@@ -484,7 +1142,8 @@ const styles = StyleSheet.create({
     padding: 12,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    minHeight: 60,
   },
   memberCardDisabled: {
     backgroundColor: "#f8f9fa",
@@ -507,6 +1166,56 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#334155",
     marginBottom: 4,
+  },
+  preferencesContainer: {
+    marginTop: 8,
+    gap: 6,
+  },
+  preferencesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "flex-start",
+  },
+  preferenceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  preferenceIcon: {
+    fontSize: 12,
+  },
+  preferenceLabel: {
+    fontSize: 11,
+    color: "#475569",
+    fontWeight: "500",
+    flex: 1,
+  },
+  timePreferenceBadge: {
+    backgroundColor: "#fef3c7",
+    borderColor: "#f59e0b",
+  },
+  transportationBadge: {
+    backgroundColor: "#dbeafe",
+    borderColor: "#3b82f6",
+  },
+  guestBadge: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#22c55e",
+  },
+  notesBadge: {
+    backgroundColor: "#f3e8ff",
+    borderColor: "#a855f7",
+  },
+  partnersBadge: {
+    backgroundColor: "#fef3c7",
+    borderColor: "#f59e0b",
   },
   roleBadge: {
     alignSelf: "flex-start",
@@ -532,6 +1241,8 @@ const styles = StyleSheet.create({
     color: "#0ea5e9",
     fontSize: 14,
     fontWeight: "600",
+    alignSelf: "flex-start",
+    marginTop: 4,
   },
   aiButton: {
     backgroundColor: "#fef7ff",
@@ -570,5 +1281,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     letterSpacing: 0.3,
+  },
+  memberCardContainer: {
+    marginBottom: 8,
+  },
+  primaryPreferencesContainer: {
+    marginTop: 6,
+  },
+  cardActions: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  expandButton: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  expandButtonText: {
+    fontSize: 12,
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  expandIcon: {
+    fontSize: 10,
+    color: "#64748b",
+  },
+  expandedPreferences: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    padding: 12,
+    gap: 8,
   },
 });

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/utils/formatting";
+import { setJustReturnedFromAssignment } from "@/utils/navigationState";
 import TeeTimeCard from "./TeeTimeCard";
 import { TeeTime, WeekendSectionProps } from "../types";
 
@@ -63,6 +64,7 @@ export default function WeekendSection({
   weekendId,
   weekend,
   teeTimes,
+  interests,
 }: WeekendSectionProps) {
   const navigation = useNavigation();
   const { userProfile, user } = useAuth();
@@ -76,6 +78,8 @@ export default function WeekendSection({
   const handleTeeTimePress = (teeTime: TeeTime) => {
     // Only allow admins to navigate to assignment screen
     if (userProfile?.role === "admin") {
+      // Set flag to indicate we're going to assignment screen
+      setJustReturnedFromAssignment(true);
       (navigation as any).navigate("TeeTimeAssignment", { teeTime });
     }
   };
@@ -95,6 +99,7 @@ export default function WeekendSection({
                 teeTime={teeTime}
                 onPress={() => handleTeeTimePress(teeTime)}
                 currentUserId={user?.id}
+                interests={interests}
               />
             ))}
           </View>
