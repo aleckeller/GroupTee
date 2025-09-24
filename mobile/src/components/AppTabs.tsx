@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Pressable, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -75,38 +76,59 @@ function AppTabs() {
   const tabs = getTabsForRole(userProfile.role);
   const headerTitle = selectedGroup.name;
 
-  const getTabBarIcon = (tabName: string) => {
-    if (tabName === "Dashboard" && unreadCount > 0) {
-      return (
-        <View style={{ position: "relative" }}>
-          <Text style={{ fontSize: 20 }}>🏠</Text>
-          <View
-            style={{
-              position: "absolute",
-              top: -2,
-              right: -8,
-              backgroundColor: "#dc2626",
-              borderRadius: 8,
-              minWidth: 16,
-              height: 16,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: 4,
-            }}
-          >
-            <Text
+  const getTabBarIcon = (tabName: string, focused: boolean) => {
+    const iconSize = 24;
+    const iconColor = focused ? "#007AFF" : "#8E8E93";
+
+    if (tabName === "Dashboard") {
+      if (unreadCount > 0) {
+        return (
+          <View style={{ position: "relative" }}>
+            <Ionicons name="home" size={iconSize} color={iconColor} />
+            <View
               style={{
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: "600",
+                position: "absolute",
+                top: -2,
+                right: -8,
+                backgroundColor: "#dc2626",
+                borderRadius: 8,
+                minWidth: 16,
+                height: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 4,
               }}
             >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Text>
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: "600",
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Text>
+            </View>
           </View>
-        </View>
+        );
+      }
+      return <Ionicons name="home" size={iconSize} color={iconColor} />;
+    }
+
+    if (tabName === "Interest") {
+      return <Ionicons name="calendar" size={iconSize} color={iconColor} />;
+    }
+
+    if (tabName === "Users") {
+      return <Ionicons name="people" size={iconSize} color={iconColor} />;
+    }
+
+    if (tabName === "Trades") {
+      return (
+        <Ionicons name="swap-horizontal" size={iconSize} color={iconColor} />
       );
     }
+
     return null;
   };
 
@@ -126,7 +148,7 @@ function AppTabs() {
           component={tab.component}
           options={{
             title: tab.title,
-            tabBarIcon: () => getTabBarIcon(tab.name),
+            tabBarIcon: ({ focused }) => getTabBarIcon(tab.name, focused),
           }}
         />
       ))}
