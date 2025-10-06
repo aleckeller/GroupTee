@@ -52,7 +52,7 @@ export default function TeeTimeCard({
         {teeTime.players && teeTime.players.length > 0 ? (
           <View style={styles.playersList}>
             {teeTime.players
-              .map((player) => {
+              .map((player, playerIndex) => {
                 const isCurrentUser =
                   currentUserId && player.id === currentUserId;
 
@@ -86,29 +86,33 @@ export default function TeeTimeCard({
                   });
                 }
 
-                return allSpots.map((spot) => (
-                  <View
-                    key={spot.id}
-                    style={[
-                      styles.playerItem,
-                      spot.isCurrentUser && styles.currentUserPlayer,
-                      spot.isGuest && styles.guestPlayer,
-                    ]}
-                  >
-                    <Text style={styles.playerIcon}>
-                      {spot.isGuest ? "👥" : "👤"}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.playerName,
-                        spot.isCurrentUser && styles.currentUserName,
-                        spot.isGuest && styles.guestPlayerName,
-                      ]}
-                    >
-                      {spot.name}
-                    </Text>
-                  </View>
-                ));
+                return (
+                  <React.Fragment key={`player-${player.id}`}>
+                    {allSpots.map((spot) => (
+                      <View
+                        key={spot.id}
+                        style={[
+                          styles.playerItem,
+                          spot.isCurrentUser && styles.currentUserPlayer,
+                          spot.isGuest && styles.guestPlayer,
+                        ]}
+                      >
+                        <Text style={styles.playerIcon}>
+                          {spot.isGuest ? "👥" : "👤"}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.playerName,
+                            spot.isCurrentUser && styles.currentUserName,
+                            spot.isGuest && styles.guestPlayerName,
+                          ]}
+                        >
+                          {spot.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </React.Fragment>
+                );
               })
               .flat()}
             {/* Show empty slots */}

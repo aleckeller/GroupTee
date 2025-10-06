@@ -648,7 +648,7 @@ export default function TeeTimeAssignmentScreen() {
           ) : (
             <View style={styles.playersList}>
               {assignedPlayers
-                .map((player) => {
+                .map((player, playerIndex) => {
                   const memberInterest = interests?.find(
                     (interest) => interest.user_id === player.id
                   );
@@ -678,45 +678,51 @@ export default function TeeTimeAssignmentScreen() {
                     });
                   }
 
-                  return allSpots.map((spot) => (
-                    <View key={spot.id} style={styles.assignedPlayerCard}>
-                      <View style={styles.playerInfo}>
-                        <Text style={styles.playerIcon}>
-                          {spot.isGuest ? "👥" : "👤"}
-                        </Text>
-                        {spot.isGuest ? (
+                  return (
+                    <React.Fragment key={`assigned-player-${player.id}`}>
+                      {allSpots.map((spot) => (
+                        <View key={spot.id} style={styles.assignedPlayerCard}>
+                          <View style={styles.playerInfo}>
+                            <Text style={styles.playerIcon}>
+                              {spot.isGuest ? "👥" : "👤"}
+                            </Text>
+                            {spot.isGuest ? (
+                              <Pressable
+                                style={styles.editableNameContainer}
+                                onPress={() =>
+                                  handleEditGuestName(player, spot.guestNumber)
+                                }
+                              >
+                                <Text style={styles.playerName}>
+                                  {spot.name}
+                                </Text>
+                                <Text style={styles.editIcon}>✏️</Text>
+                              </Pressable>
+                            ) : (
+                              <Text style={styles.playerName}>{spot.name}</Text>
+                            )}
+                          </View>
                           <Pressable
-                            style={styles.editableNameContainer}
-                            onPress={() =>
-                              handleEditGuestName(player, spot.guestNumber)
-                            }
+                            style={[
+                              styles.removeButton,
+                              spot.isGuest && styles.removeButtonDisabled,
+                            ]}
+                            onPress={() => handleRemovePlayer(player)}
+                            disabled={loading || spot.isGuest}
                           >
-                            <Text style={styles.playerName}>{spot.name}</Text>
-                            <Text style={styles.editIcon}>✏️</Text>
+                            <Text
+                              style={[
+                                styles.removeButtonText,
+                                spot.isGuest && styles.removeButtonTextDisabled,
+                              ]}
+                            >
+                              Remove
+                            </Text>
                           </Pressable>
-                        ) : (
-                          <Text style={styles.playerName}>{spot.name}</Text>
-                        )}
-                      </View>
-                      <Pressable
-                        style={[
-                          styles.removeButton,
-                          spot.isGuest && styles.removeButtonDisabled,
-                        ]}
-                        onPress={() => handleRemovePlayer(player)}
-                        disabled={loading || spot.isGuest}
-                      >
-                        <Text
-                          style={[
-                            styles.removeButtonText,
-                            spot.isGuest && styles.removeButtonTextDisabled,
-                          ]}
-                        >
-                          Remove
-                        </Text>
-                      </Pressable>
-                    </View>
-                  ));
+                        </View>
+                      ))}
+                    </React.Fragment>
+                  );
                 })
                 .flat()}
             </View>
