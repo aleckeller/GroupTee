@@ -31,14 +31,34 @@ def create_driver():
     chrome_options = webdriver.ChromeOptions()
     if os.path.exists(GOOGLE_CHROME_BIN):
         chrome_options.binary_location = GOOGLE_CHROME_BIN
-    chrome_options.add_argument("--headless")
+
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("useAutomationExtension", False)
+    chrome_options.add_argument(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    )
+
     driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=chrome_options)
     driver.implicitly_wait(10)
+
+    driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                })
+            """
+        },
+    )
+
     return driver
 
 
@@ -148,6 +168,13 @@ def go_to_teesheet_1757(driver, wait):
     time.sleep(3)
 
     driver.switch_to.window(driver.window_handles[-1])
+
+    max_cf_wait = 15
+    for i in range(max_cf_wait):
+        if "Just a moment" not in driver.title:
+            break
+        print(f"  Waiting... ({i + 1}/{max_cf_wait})")
+        time.sleep(1)
 
     # Debug: print current state
     print(f"  DEBUG: Window handles: {len(driver.window_handles)}")
