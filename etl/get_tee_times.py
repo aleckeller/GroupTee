@@ -145,12 +145,15 @@ def go_to_teesheet_1757(driver, wait):
     anchor_element = driver.find_element(By.CSS_SELECTOR, '[data-id="10136"] a')
     driver.execute_script("arguments[0].click();", anchor_element)
 
-    time.sleep(2)
+    time.sleep(3)
 
     driver.switch_to.window(driver.window_handles[-1])
 
-    view_teesheet_link = driver.find_element(
-        By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]'
+    # Wait for the tee sheet link to be present after switching windows
+    view_teesheet_link = wait.until(
+        expected_conditions.presence_of_element_located(
+            (By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]')
+        )
     )
     driver.execute_script("arguments[0].scrollIntoView();", view_teesheet_link)
     driver.execute_script("arguments[0].click();", view_teesheet_link)
