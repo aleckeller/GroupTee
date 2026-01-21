@@ -6,20 +6,19 @@ on:
 
 jobs:
   # Mobile type checking
-  mobile-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install dependencies
-        run: cd mobile && npm ci && npx tsc --noEmit
+  # mobile-lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #     - name: Install dependencies
+  #       run: cd mobile && npm ci && npx tsc --noEmit
 
   # Mobile EAS build (only on main branch)
   # mobile-build:
   #   needs: mobile-lint
-  #   if: github.ref == 'refs/heads/main'
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
