@@ -364,6 +364,20 @@ grant select, insert on public.weekends to service_role;
 grant select, insert, update on public.tee_times to service_role;
 grant all on public.external_tee_sheets to anon, authenticated, service_role;
 
+-- Authenticated role grants (RLS policies control row-level access)
+grant select on public.clubs to authenticated;
+grant select on public.groups to authenticated;
+grant select, insert, update, delete on public.memberships to authenticated;
+grant select, insert, update, delete on public.invitations to authenticated;
+grant select on public.weekends to authenticated;
+grant select, insert, update, delete on public.tee_times to authenticated;
+grant select, insert, update, delete on public.interests to authenticated;
+grant select on public.sysadmins to authenticated;
+grant select on public.club_admins to authenticated;
+grant select, insert, update, delete on public.assignments to authenticated;
+grant select, insert, update, delete on public.trades to authenticated;
+grant select, insert, update, delete on public.notifications to authenticated;
+
 --------------------------------------------------------------------------------
 -- TRIGGERS & FUNCTIONS
 --------------------------------------------------------------------------------
