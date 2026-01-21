@@ -65,9 +65,11 @@ export default function WeekendSection({
   weekend,
   teeTimes,
   interests,
+  onDeleteTeeTime,
 }: WeekendSectionProps) {
   const navigation = useNavigation();
   const { userProfile, user } = useAuth();
+  const isAdmin = userProfile?.role === "admin";
   const relativeLabel = getRelativeWeekendLabel(
     weekend.start_date,
     weekend.end_date
@@ -98,6 +100,8 @@ export default function WeekendSection({
                 key={teeTime.id}
                 teeTime={teeTime}
                 onPress={() => handleTeeTimePress(teeTime)}
+                onDelete={onDeleteTeeTime ? () => onDeleteTeeTime(teeTime.id) : undefined}
+                isAdmin={isAdmin}
                 currentUserId={user?.id}
                 interests={interests}
               />

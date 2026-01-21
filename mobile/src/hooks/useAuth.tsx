@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -19,7 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -28,7 +29,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         .single();
 
       if (error) {
-        console.error("Error fetching user profile:", error);
         // If profile doesn't exist, create one
         if (error.code === "PGRST116") {
           const { data: newProfile, error: createError } = await supabase
@@ -78,26 +78,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error("Error in fetchUserProfile:", error);
     }
-  };
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) {
+      await fetchUserProfile(user.id);
+    }
+  }, [user?.id, fetchUserProfile]);
+
+  // Auto-redeem invite code from user metadata after signup/login
+  const redeemPendingInviteCode = useCallback(async (authUser: User) => {
+    const inviteCode = authUser.user_metadata?.invite_code;
+    if (!inviteCode) return;
+
+    try {
+      // Try to redeem the invite code
+      const { data, error } = await supabase.rpc("claim_invitation", {
+        invite_code: inviteCode,
+      });
+
+      if (!error && data?.success) {
+        // Clear the invite code from user metadata
+        await supabase.auth.updateUser({
+          data: { invite_code: null },
+        });
+      }
+    } catch (err) {
+      console.error("Error redeeming invite code:", err);
+    }
+  }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      console.log("Initial session check:", data.session?.user?.id);
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       if (data.session?.user) {
-        fetchUserProfile(data.session.user.id);
+        await redeemPendingInviteCode(data.session.user);
+        await fetchUserProfile(data.session.user.id);
       }
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log("Auth state change:", event, newSession?.user?.id);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
-          await fetchUserProfile(newSession.user.id);
+          // Only handle SIGNED_IN event - ignore USER_UPDATED to avoid race conditions
+          if (event === "SIGNED_IN") {
+            await redeemPendingInviteCode(newSession.user);
+            await fetchUserProfile(newSession.user.id);
+          }
         } else {
           setUserProfile(null);
         }
@@ -108,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [redeemPendingInviteCode]);
 
   const value = useMemo<UseAuthReturn>(
     () => ({
@@ -116,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       session,
       loading,
       userProfile,
+      refreshProfile,
       async signIn(email: string, password: string) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -123,8 +155,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return error ? { error: error.message } : {};
       },
-      async signUp(email: string, password: string) {
-        const { error, data } = await supabase.auth.signUp({ email, password });
+      async signUp(email: string, password: string, fullName?: string, inviteCode?: string) {
+        const { error, data } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              invite_code: inviteCode,
+            },
+          },
+        });
         if (error) return { error: error.message };
         const needsVerification = !data.session;
         return { needsVerification };
@@ -133,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await supabase.auth.signOut();
       },
     }),
-    [user, session, loading, userProfile]
+    [user, session, loading, userProfile, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

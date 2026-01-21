@@ -14,13 +14,14 @@ import { useRoute } from "@react-navigation/native";
 import { supabase } from "@/lib/supabase";
 import { useGroupMembers } from "@/hooks/useGroupMembers";
 import { useGroup } from "@/hooks/useGroup";
+import { useInvitations } from "@/hooks/useInvitations";
 import {
   useInterestsForDate,
   InterestWithProfile,
 } from "@/hooks/useInterestsForDate";
 import { formatDate, formatTime } from "@/utils/formatting";
 import { setHasAssignmentChanges } from "@/utils/navigationState";
-import { GroupMember, TeeTime, Player } from "../types";
+import { GroupMember, TeeTime, Player, Invitation } from "../types";
 import RoleGuard from "@/components/RoleGuard";
 
 type RouteParams = {
@@ -34,13 +35,26 @@ export default function TeeTimeAssignmentScreen() {
   const { members, loading: membersLoading } = useGroupMembers(
     selectedGroup?.id || null
   );
+  const { getGroupInvitations } = useInvitations();
+  const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
   const { interests, loading: interestsLoading } = useInterestsForDate(
     teeTime.tee_date,
     selectedGroup?.id || null
   );
 
-  const [assignedPlayers, setAssignedPlayers] = useState<Player[]>(
-    teeTime.players || []
+  // Extended player type to support pending members (invitations)
+  type AssignedPlayer = Player & {
+    is_pending?: boolean;
+    invitation_id?: string;
+  };
+
+  const [assignedPlayers, setAssignedPlayers] = useState<AssignedPlayer[]>(
+    (teeTime.players || []).map((p: any) => ({
+      ...p,
+      is_pending: p.is_pending || false,
+      invitation_id: p.is_pending ? p.id : undefined,
+    }))
   );
   const [loading, setLoading] = useState(false);
   const [aiAssigning, setAiAssigning] = useState(false);
@@ -53,24 +67,43 @@ export default function TeeTimeAssignmentScreen() {
   const [guestNameInput, setGuestNameInput] = useState("");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
+  // Load pending invitations
+  useEffect(() => {
+    const loadPendingInvitations = async () => {
+      if (!selectedGroup?.id) {
+        setPendingLoading(false);
+        return;
+      }
+      setPendingLoading(true);
+      const invitations = await getGroupInvitations(selectedGroup.id);
+      setPendingInvitations(invitations);
+      setPendingLoading(false);
+    };
+    loadPendingInvitations();
+  }, [selectedGroup?.id, getGroupInvitations]);
+
   // Load existing guest names when component mounts
   useEffect(() => {
     const loadGuestNames = async () => {
       try {
         const { data, error } = await supabase
           .from("assignments")
-          .select("user_id, guest_names")
+          .select("user_id, invitation_id, guest_names")
           .eq("tee_time_id", teeTime.id);
 
         if (error) {
-          console.error("Error loading guest names:", error);
+          console.error("Error loading assignments:", error);
           return;
         }
 
         const guestNamesMap: { [key: string]: string[] } = {};
+
         data?.forEach((assignment) => {
           if (assignment.guest_names && assignment.guest_names.length > 0) {
-            guestNamesMap[assignment.user_id] = assignment.guest_names;
+            const playerId = assignment.user_id || assignment.invitation_id;
+            if (playerId) {
+              guestNamesMap[playerId] = assignment.guest_names;
+            }
           }
         });
 
@@ -161,14 +194,20 @@ export default function TeeTimeAssignmentScreen() {
 
       if (error) {
         console.error("Error assigning player:", error);
-        Alert.alert("Error", "Failed to assign player to tee time.");
+        // Check if this is a capacity constraint error
+        if (error.message && error.message.includes("Not enough space")) {
+          Alert.alert("Not Enough Space", error.message);
+        } else {
+          Alert.alert("Error", "Failed to assign player to tee time.");
+        }
         return;
       }
 
       // Update local state
-      const newPlayer: Player = {
+      const newPlayer: AssignedPlayer = {
         id: member.id,
         full_name: member.full_name || "Unknown",
+        is_pending: false,
       };
       setAssignedPlayers([...assignedPlayers, newPlayer]);
 
@@ -187,11 +226,83 @@ export default function TeeTimeAssignmentScreen() {
     }
   };
 
-  const handleRemovePlayer = async (player: Player) => {
+  // Handle assigning a pending member (invitation)
+  const handleAssignPendingMember = async (invitation: Invitation) => {
+    const currentSpots = getCurrentTotalSpots();
+    const availableSpots = teeTime.max_players - currentSpots;
+
+    if (availableSpots < 1) {
+      Alert.alert(
+        "Not Enough Space",
+        "This tee time is full. No spots available."
+      );
+      return;
+    }
+
+    if (assignedPlayers.some((player) => player.id === invitation.id)) {
+      Alert.alert(
+        "Already Assigned",
+        "This member is already assigned to this tee time."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Assign Pending Member",
+      `Are you sure you want to assign ${invitation.display_name || "this person"} to this tee time?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Assign", onPress: () => assignPendingMember(invitation) },
+      ]
+    );
+  };
+
+  const assignPendingMember = async (invitation: Invitation) => {
+    try {
+      setLoading(true);
+
+      // Add the pending member (invitation) to the tee time
+      const { error } = await supabase.from("assignments").insert({
+        tee_time_id: teeTime.id,
+        invitation_id: invitation.id,
+        weekend_id: teeTime.weekend_id,
+      });
+
+      if (error) {
+        console.error("Error assigning pending member:", error);
+        Alert.alert("Error", "Failed to assign pending member to tee time.");
+        return;
+      }
+
+      // Update local state
+      const newPlayer: AssignedPlayer = {
+        id: invitation.id,
+        full_name: invitation.display_name || "Unnamed",
+        is_pending: true,
+        invitation_id: invitation.id,
+      };
+      setAssignedPlayers([...assignedPlayers, newPlayer]);
+
+      // Mark that there were assignment changes
+      setHasAssignmentChanges(true);
+
+      Alert.alert(
+        "Success",
+        `${invitation.display_name || "Pending member"} has been assigned to this tee time.`
+      );
+    } catch (error) {
+      console.error("Error in assignPendingMember:", error);
+      Alert.alert("Error", "Failed to assign pending member to tee time.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemovePlayer = async (player: AssignedPlayer) => {
     const memberInterest = interests?.find(
       (interest) => interest.user_id === player.id
     );
-    const guestCount = memberInterest?.guest_count || 0;
+    const guestCount = player.is_pending ? 0 : (memberInterest?.guest_count || 0);
 
     const guestText =
       guestCount > 0
@@ -208,15 +319,23 @@ export default function TeeTimeAssignmentScreen() {
     );
   };
 
-  const removePlayer = async (player: Player) => {
+  const removePlayer = async (player: AssignedPlayer) => {
     try {
       setLoading(true);
 
-      const { error } = await supabase
+      let deleteQuery = supabase
         .from("assignments")
         .delete()
-        .eq("tee_time_id", teeTime.id)
-        .eq("user_id", player.id);
+        .eq("tee_time_id", teeTime.id);
+
+      // Use the appropriate column based on whether it's a pending member
+      if (player.is_pending && player.invitation_id) {
+        deleteQuery = deleteQuery.eq("invitation_id", player.invitation_id);
+      } else {
+        deleteQuery = deleteQuery.eq("user_id", player.id);
+      }
+
+      const { error } = await deleteQuery;
 
       if (error) {
         console.error("Error removing player:", error);
@@ -233,7 +352,7 @@ export default function TeeTimeAssignmentScreen() {
       const memberInterest = interests?.find(
         (interest) => interest.user_id === player.id
       );
-      const guestCount = memberInterest?.guest_count || 0;
+      const guestCount = player.is_pending ? 0 : (memberInterest?.guest_count || 0);
       const guestText =
         guestCount > 0
           ? ` and their ${guestCount} guest${guestCount > 1 ? "s" : ""}`
@@ -554,7 +673,12 @@ export default function TeeTimeAssignmentScreen() {
 
         if (error) {
           console.error("Error assigning player:", error);
-          throw new Error(`Failed to assign ${member.full_name}`);
+          // Check if this is a capacity constraint error
+          if (error.message && error.message.includes("Not enough space")) {
+            throw new Error(`Not enough space for ${member.full_name}: ${error.message}`);
+          } else {
+            throw new Error(`Failed to assign ${member.full_name}`);
+          }
         }
       }
 
@@ -587,7 +711,7 @@ export default function TeeTimeAssignmentScreen() {
     }
   };
 
-  if (membersLoading || interestsLoading) {
+  if (membersLoading || interestsLoading || pendingLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0ea5e9" />
@@ -597,6 +721,13 @@ export default function TeeTimeAssignmentScreen() {
       </View>
     );
   }
+
+  // Get unassigned pending members (invitations)
+  const getAvailablePendingMembers = () => {
+    return pendingInvitations.filter(
+      (inv) => !assignedPlayers.some((player) => player.id === inv.id)
+    );
+  };
 
   return (
     <RoleGuard allowedRoles={["admin"]}>
@@ -678,8 +809,10 @@ export default function TeeTimeAssignmentScreen() {
                     });
                   }
 
+                  const playerId = player.id || `index-${playerIndex}`;
+
                   return (
-                    <React.Fragment key={`assigned-player-${player.id}`}>
+                    <React.Fragment key={`assigned-player-${playerId}`}>
                       {allSpots.map((spot) => (
                         <View key={spot.id} style={styles.assignedPlayerCard}>
                           <View style={styles.playerInfo}>
@@ -699,7 +832,14 @@ export default function TeeTimeAssignmentScreen() {
                                 <Text style={styles.editIcon}>✏️</Text>
                               </Pressable>
                             ) : (
-                              <Text style={styles.playerName}>{spot.name}</Text>
+                              <View style={styles.playerNameContainer}>
+                                <Text style={styles.playerName}>{spot.name}</Text>
+                                {player.is_pending && (
+                                  <View style={styles.assignedPendingBadge}>
+                                    <Text style={styles.assignedPendingBadgeText}>Pending</Text>
+                                  </View>
+                                )}
+                              </View>
                             )}
                           </View>
                           <Pressable
@@ -723,8 +863,7 @@ export default function TeeTimeAssignmentScreen() {
                       ))}
                     </React.Fragment>
                   );
-                })
-                .flat()}
+                })}
             </View>
           )}
         </View>
@@ -885,6 +1024,65 @@ export default function TeeTimeAssignmentScreen() {
             </View>
           )}
         </View>
+
+        {/* Pending Members Section */}
+        {getAvailablePendingMembers().length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Pending Members {isFull && "(Tee Time Full)"}
+            </Text>
+            <Text style={styles.pendingSectionNote}>
+              These members don't have accounts yet
+            </Text>
+            <View style={styles.membersList}>
+              {getAvailablePendingMembers().map((invitation) => (
+                <View key={invitation.id} style={styles.memberCardContainer}>
+                  <Pressable
+                    style={[
+                      styles.memberCard,
+                      styles.pendingMemberCard,
+                      isFull && styles.memberCardDisabled,
+                    ]}
+                    onPress={() => handleAssignPendingMember(invitation)}
+                    disabled={isFull || loading}
+                  >
+                    <View style={styles.memberInfo}>
+                      <Text style={styles.memberIcon}>👤</Text>
+                      <View style={styles.memberDetails}>
+                        <View style={styles.pendingNameRow}>
+                          <Text style={styles.memberName}>
+                            {invitation.display_name || "Unnamed"}
+                          </Text>
+                          <View style={styles.pendingBadge}>
+                            <Text style={styles.pendingBadgeText}>Pending</Text>
+                          </View>
+                        </View>
+                        {invitation.invited_email && (
+                          <Text style={styles.pendingEmail}>{invitation.invited_email}</Text>
+                        )}
+                        <View
+                          style={[
+                            styles.roleBadge,
+                            invitation.target_role === "admin"
+                              ? styles.roleAdmin
+                              : invitation.target_role === "member"
+                              ? styles.roleMember
+                              : styles.roleGuest,
+                          ]}
+                        >
+                          <Text style={styles.roleText}>{invitation.target_role || "member"}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.cardActions}>
+                      <Text style={styles.assignButtonText}>Assign</Text>
+                    </View>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Guest Name Edit Modal */}
@@ -1054,6 +1252,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: "#334155",
+  },
+  playerNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  assignedPendingBadge: {
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  assignedPendingBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#d97706",
   },
   removeButton: {
     backgroundColor: "#dc2626",
@@ -1330,5 +1544,38 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
     padding: 12,
     gap: 8,
+  },
+  // Pending member styles
+  pendingSectionNote: {
+    fontSize: 12,
+    color: "#92400e",
+    marginBottom: 12,
+    fontStyle: "italic",
+  },
+  pendingMemberCard: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fde68a",
+  },
+  pendingNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  pendingBadge: {
+    backgroundColor: "#fbbf24",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  pendingBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#78350f",
+  },
+  pendingEmail: {
+    fontSize: 11,
+    color: "#92400e",
+    marginBottom: 4,
   },
 });

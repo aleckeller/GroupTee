@@ -41,6 +41,7 @@ export default function Dashboard() {
     teeTimes,
     loading: teeTimesLoading,
     refresh: refreshTeeTimes,
+    deleteTeeTime,
   } = useTeeTimes(selectedGroup?.id || null);
   const {
     weekends,
@@ -67,6 +68,14 @@ export default function Dashboard() {
     refresh: refreshInterests,
   } = useGroupInterests(selectedGroup?.id || null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Handle tee time deletion and refresh stats
+  const handleDeleteTeeTime = async (teeTimeId: string) => {
+    const success = await deleteTeeTime(teeTimeId);
+    if (success) {
+      refreshStats();
+    }
+  };
 
   // Track when notifications are modified to prevent unnecessary refreshes
   const handleDeleteNotification = (notificationId: string) => {
@@ -316,6 +325,7 @@ export default function Dashboard() {
                         weekend={weekend}
                         teeTimes={weekendTeeTimes}
                         interests={interests}
+                        onDeleteTeeTime={handleDeleteTeeTime}
                       />
                     </View>
                   );

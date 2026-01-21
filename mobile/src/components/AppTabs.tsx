@@ -24,16 +24,18 @@ const ADMIN_TABS: TabConfig[] = [
   { name: "Dashboard", component: Dashboard, title: "Dashboard" },
   { name: "Interest", component: CalendarInterestScreen, title: "Interest" },
   // { name: "Trades", component: TradesScreen, title: "Trades" }, // Temporarily disabled
-  { name: "Users", component: AdminRoleManager, title: "Users" },
+  { name: "Roster", component: AdminRoleManager, title: "Roster" },
 ];
 
 const MEMBER_TABS: TabConfig[] = [
   { name: "Dashboard", component: Dashboard, title: "Dashboard" },
   { name: "Interest", component: CalendarInterestScreen, title: "Interest" },
+  { name: "Roster", component: AdminRoleManager, title: "Roster" },
 ];
 
 const GUEST_TABS: TabConfig[] = [
   { name: "Guest", component: GuestScheduleScreen, title: "Guest" },
+  { name: "Roster", component: AdminRoleManager, title: "Roster" },
 ];
 
 function GroupHeaderRight() {
@@ -119,7 +121,7 @@ function AppTabs() {
       return <Ionicons name="calendar" size={iconSize} color={iconColor} />;
     }
 
-    if (tabName === "Users") {
+    if (tabName === "Roster") {
       return <Ionicons name="people" size={iconSize} color={iconColor} />;
     }
 

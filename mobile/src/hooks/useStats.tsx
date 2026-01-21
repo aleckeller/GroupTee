@@ -16,7 +16,8 @@ export const useStats = (groupId: string | null) => {
     setLoading(true);
     try {
       const [
-        { count: playersCount },
+        { count: membersCount },
+        { count: pendingCount },
         { count: teeTimesCount },
         { count: tradesCount },
       ] = await Promise.all([
@@ -25,6 +26,13 @@ export const useStats = (groupId: string | null) => {
           .from("memberships")
           .select("*", { count: "exact", head: true })
           .eq("group_id", groupId),
+        // Count pending members (unclaimed invitations)
+        supabase
+          .from("invitations")
+          .select("*", { count: "exact", head: true })
+          .eq("group_id", groupId)
+          .eq("invitation_type", "group_member")
+          .is("claimed_by", null),
         // Count tee times for this group
         supabase
           .from("tee_times")
@@ -37,8 +45,10 @@ export const useStats = (groupId: string | null) => {
           .or(`from_group_id.eq.${groupId},to_group_id.eq.${groupId}`),
       ]);
 
+      const totalPlayers = (membersCount || 0) + (pendingCount || 0);
+
       setStats([
-        { id: "s1", label: "Players", value: playersCount || 0 },
+        { id: "s1", label: "Players", value: totalPlayers },
         { id: "s2", label: "Tee Times", value: teeTimesCount || 0 },
         { id: "s3", label: "Trades", value: tradesCount || 0 },
       ]);

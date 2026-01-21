@@ -1,11 +1,13 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import { formatTime, getAvailabilityStatus } from "@/utils/formatting";
 import { TeeTimeCardProps, Interest } from "../types";
 
 export default function TeeTimeCard({
   teeTime,
   onPress,
+  onDelete,
+  isAdmin,
   currentUserId,
   interests,
 }: TeeTimeCardProps) {
@@ -29,6 +31,26 @@ export default function TeeTimeCard({
     teeTime.max_players
   );
 
+  const handleDelete = () => {
+    const playerCount = teeTime.players?.length || 0;
+    const message = playerCount > 0
+      ? `This tee time has ${playerCount} player${playerCount > 1 ? "s" : ""} assigned. Are you sure you want to delete it?`
+      : "Are you sure you want to delete this tee time?";
+
+    Alert.alert(
+      "Delete Tee Time",
+      message,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: onDelete,
+        },
+      ]
+    );
+  };
+
   const CardContent = () => (
     <>
       <View style={styles.teeTimeHeader}>
@@ -36,15 +58,26 @@ export default function TeeTimeCard({
           <Text style={styles.teeTime}>{formatTime(teeTime.tee_time)}</Text>
           <Text style={styles.holeInfo}>Max {teeTime.max_players} players</Text>
         </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: availability.backgroundColor },
-          ]}
-        >
-          <Text style={[styles.statusText, { color: availability.color }]}>
-            {availability.status}
-          </Text>
+        <View style={styles.headerRight}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: availability.backgroundColor },
+            ]}
+          >
+            <Text style={[styles.statusText, { color: availability.color }]}>
+              {availability.status}
+            </Text>
+          </View>
+          {isAdmin && onDelete && (
+            <Pressable
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              hitSlop={8}
+            >
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -62,10 +95,12 @@ export default function TeeTimeCard({
                 );
                 const guestCount = playerInterest?.guest_count || 0;
 
+                const playerId = player.id || `index-${playerIndex}`;
+
                 // Create array of all spots (member + guests)
                 const allSpots = [
                   {
-                    id: player.id,
+                    id: playerId,
                     name: player.full_name,
                     isGuest: false,
                     isCurrentUser,
@@ -79,7 +114,7 @@ export default function TeeTimeCard({
                     playerGuestNames[i - 1] ||
                     `${player.full_name}'s Guest ${i}`;
                   allSpots.push({
-                    id: `${player.id}_guest_${i}`,
+                    id: `${playerId}_guest_${i}`,
                     name: guestName,
                     isGuest: true,
                     isCurrentUser: false,
@@ -87,7 +122,7 @@ export default function TeeTimeCard({
                 }
 
                 return (
-                  <React.Fragment key={`player-${player.id}`}>
+                  <React.Fragment key={`player-${playerId}`}>
                     {allSpots.map((spot) => (
                       <View
                         key={spot.id}
@@ -113,8 +148,7 @@ export default function TeeTimeCard({
                     ))}
                   </React.Fragment>
                 );
-              })
-              .flat()}
+              })}
             {/* Show empty slots */}
             {Array.from({
               length: teeTime.max_players - getTotalSpotsUsed(),
@@ -169,6 +203,24 @@ const styles = StyleSheet.create({
   },
   teeTimeInfo: {
     flex: 1,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deleteButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  deleteButtonText: {
+    color: "#dc2626",
+    fontSize: 12,
+    fontWeight: "600",
   },
   teeTime: {
     fontWeight: "700",

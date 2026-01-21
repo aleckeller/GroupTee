@@ -14,7 +14,8 @@
       "@/lib/*": ["src/lib/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/navigation/*": ["src/navigation/*"],
-      "@/utils/*": ["src/utils/*"]
+      "@/utils/*": ["src/utils/*"],
+      "@/types": ["src/types/index.ts"]
     }
   },
   "extends": "expo/tsconfig.base"

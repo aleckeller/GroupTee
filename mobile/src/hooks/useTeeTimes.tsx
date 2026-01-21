@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { TeeTime } from "../types";
+import { Alert } from "react-native";
 
 export const useTeeTimes = (groupId: string | null) => {
   const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
@@ -26,10 +27,16 @@ export const useTeeTimes = (groupId: string | null) => {
           ),
           assignments(
             id,
+            user_id,
+            invitation_id,
             guest_names,
             profiles(
               id,
               full_name
+            ),
+            invitations(
+              id,
+              display_name
             )
           )
         `
@@ -49,10 +56,24 @@ export const useTeeTimes = (groupId: string | null) => {
         data?.map((teeTime) => ({
           ...teeTime,
           players:
-            teeTime.assignments?.map((assignment: any) => ({
-              ...assignment.profiles,
-              guest_names: assignment.guest_names || [],
-            })) || [],
+            teeTime.assignments?.map((assignment: any) => {
+              // Check if this is a pending member (invitation) or a regular user
+              if (assignment.invitation_id && !assignment.user_id) {
+                // Pending member - use invitation data
+                return {
+                  id: assignment.invitation_id,
+                  full_name: assignment.invitations?.display_name || "Pending Member",
+                  guest_names: assignment.guest_names || [],
+                  is_pending: true,
+                };
+              }
+              // Regular user - use profile data
+              return {
+                ...assignment.profiles,
+                guest_names: assignment.guest_names || [],
+                is_pending: false,
+              };
+            }) || [],
           weekends: teeTime.weekends,
         })) || [];
 
@@ -69,5 +90,31 @@ export const useTeeTimes = (groupId: string | null) => {
     loadTeeTimes();
   }, [loadTeeTimes]);
 
-  return { teeTimes, loading, refresh: loadTeeTimes };
+  const deleteTeeTime = useCallback(
+    async (teeTimeId: string) => {
+      try {
+        const { error } = await supabase
+          .from("tee_times")
+          .delete()
+          .eq("id", teeTimeId);
+
+        if (error) {
+          console.error("Error deleting tee time:", error);
+          Alert.alert("Error", "Failed to delete tee time");
+          return false;
+        }
+
+        // Update local state
+        setTeeTimes((prev) => prev.filter((t) => t.id !== teeTimeId));
+        return true;
+      } catch (error) {
+        console.error("Error deleting tee time:", error);
+        Alert.alert("Error", "Failed to delete tee time");
+        return false;
+      }
+    },
+    []
+  );
+
+  return { teeTimes, loading, refresh: loadTeeTimes, deleteTeeTime };
 };

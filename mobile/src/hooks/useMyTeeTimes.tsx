@@ -26,7 +26,13 @@ export const useMyTeeTimes = (userId: string | null) => {
             created_at,
             weekend_id,
             weekends(id, start_date, end_date),
-            assignments(profiles(id, full_name))
+            assignments(
+              user_id,
+              invitation_id,
+              guest_names,
+              profiles(id, full_name),
+              invitations(id, display_name)
+            )
           )
         `
         )
@@ -52,7 +58,25 @@ export const useMyTeeTimes = (userId: string | null) => {
             group_id: "", // Not needed for user's view
             max_players: teeTime.max_players,
             created_at: teeTime.created_at,
-            players: teeTime.assignments?.map((a: any) => a.profiles) || [],
+            players:
+              teeTime.assignments?.map((a: any) => {
+                // Check if this is a pending member (invitation) or a regular user
+                if (a.invitation_id && !a.user_id) {
+                  // Pending member - use invitation data
+                  return {
+                    id: a.invitation_id,
+                    full_name: a.invitations?.display_name || "Pending Member",
+                    guest_names: a.guest_names || [],
+                    is_pending: true,
+                  };
+                }
+                // Regular user - use profile data
+                return {
+                  ...a.profiles,
+                  guest_names: a.guest_names || [],
+                  is_pending: false,
+                };
+              }) || [],
             weekends: teeTime.weekends,
           };
         }) || [];
