@@ -14,9 +14,7 @@ jobs:
         with:
           node-version: "20"
       - name: Install dependencies
-        run: cd mobile && npm ci
-      - name: Type check
-        run: cd mobile && npx tsc --noEmit
+        run: cd mobile && npm ci && npx tsc --noEmit
 
   # Mobile EAS build (only on main branch)
   # mobile-build:
