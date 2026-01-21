@@ -386,9 +386,16 @@ def store_raw_tee_sheet(
     supabase: Client, club_id: str, tee_date: str, tee_sheet: list[dict]
 ):
     """Store the raw tee sheet data for audit purposes."""
-    supabase.table("external_tee_sheets").insert(
-        {"club_id": club_id, "scraped_date": tee_date, "raw_data": tee_sheet}
-    ).execute()
+    try:
+        supabase.table("external_tee_sheets").insert(
+            {"club_id": club_id, "scraped_date": tee_date, "raw_data": tee_sheet}
+        ).execute()
+    except Exception as e:
+        print(f"  DEBUG: Failed to store tee sheet. club_id={club_id}, date={tee_date}")
+        print(f"  DEBUG: Error: {e}")
+        # Skip this step rather than failing the whole ETL
+        print("  WARNING: Skipping raw tee sheet storage, continuing with ETL...")
+        return
 
 
 def process_day(
