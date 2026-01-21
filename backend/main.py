@@ -1,12 +1,10 @@
 import os
-import asyncio
 from typing import Any, Dict
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 import httpx
-import asyncpg
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,22 +15,10 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL", "").strip() or (
     SUPABASE_URL.rstrip("/") + "/auth/v1/certs" if SUPABASE_URL else ""
 )
-SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
 
-http_client = httpx.AsyncClient(timeout=10.0)
 security = HTTPBearer(auto_error=True)
 
 jwks_cache: Dict[str, Any] | None = None
-
-
-async def get_db_pool() -> asyncpg.Pool | None:
-    if not SUPABASE_DB_URL:
-        return None
-    if not hasattr(app.state, "db_pool") or app.state.db_pool is None:
-        app.state.db_pool = await asyncpg.create_pool(
-            dsn=SUPABASE_DB_URL, min_size=0, max_size=5
-        )
-    return app.state.db_pool
 
 
 async def get_jwks() -> Dict[str, Any]:
@@ -40,9 +26,10 @@ async def get_jwks() -> Dict[str, Any]:
     if jwks_cache is None:
         if not SUPABASE_JWKS_URL:
             raise RuntimeError("SUPABASE_JWKS_URL is not configured")
-        resp = await http_client.get(SUPABASE_JWKS_URL)
-        resp.raise_for_status()
-        jwks_cache = resp.json()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(SUPABASE_JWKS_URL)
+            resp.raise_for_status()
+            jwks_cache = resp.json()
     return jwks_cache  # type: ignore
 
 
@@ -67,13 +54,6 @@ async def verify_jwt(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    if hasattr(app.state, "db_pool") and app.state.db_pool:
-        await app.state.db_pool.close()
-    await http_client.aclose()
 
 
 @app.get("/health")

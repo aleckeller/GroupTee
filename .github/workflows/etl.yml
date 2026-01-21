@@ -1,0 +1,43 @@
+name: ETL Tee Times Scraper
+
+on:
+  schedule:
+    # Run every Monday at 6 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    # Allow manual triggering from GitHub Actions UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Setup ChromeDriver
+        uses: nanasess/setup-chromedriver@master
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd etl
+          pip install -r requirements.txt
+
+      - name: Run ETL
+        env:
+          CLUB_ID: ${{ secrets.CLUB_ID }}
+          GOLF_CLUB_USERNAME: ${{ secrets.GOLF_CLUB_USERNAME }}
+          GOLF_CLUB_PASSWORD: ${{ secrets.GOLF_CLUB_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GOOGLE_CHROME_BIN: /usr/bin/google-chrome
+          CHROMEDRIVER_PATH: /usr/local/bin/chromedriver
+        run: |
+          cd etl
+          python get_tee_times.py
