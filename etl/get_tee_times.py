@@ -149,12 +149,22 @@ def go_to_teesheet_1757(driver, wait):
 
     driver.switch_to.window(driver.window_handles[-1])
 
+    # Debug: print current state
+    print(f"  DEBUG: Window handles: {len(driver.window_handles)}")
+    print(f"  DEBUG: Current URL: {driver.current_url}")
+    print(f"  DEBUG: Page title: {driver.title}")
+
     # Wait for the tee sheet link to be present after switching windows
-    view_teesheet_link = wait.until(
-        expected_conditions.presence_of_element_located(
-            (By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]')
+    try:
+        view_teesheet_link = wait.until(
+            expected_conditions.presence_of_element_located(
+                (By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]')
+            )
         )
-    )
+    except Exception as e:
+        # Dump page source for debugging
+        print(f"  DEBUG: Page source (first 2000 chars):\n{driver.page_source[:2000]}")
+        raise
     driver.execute_script("arguments[0].scrollIntoView();", view_teesheet_link)
     driver.execute_script("arguments[0].click();", view_teesheet_link)
 
