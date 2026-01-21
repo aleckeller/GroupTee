@@ -27,7 +27,7 @@ export function useUserSearch(): UseUserSearchReturn {
       }
 
       // Map to UserProfile format (role is not available from profiles table directly)
-      const profiles: UserProfile[] = (data || []).map((p) => ({
+      const profiles: UserProfile[] = (data || []).map((p: { id: string; full_name: string | null }) => ({
         id: p.id,
         full_name: p.full_name,
         role: "guest" as const, // Role determined by memberships, not stored in profiles

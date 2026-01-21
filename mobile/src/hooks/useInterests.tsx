@@ -111,11 +111,11 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
 
         // Create a set of dates that have interests
         const datesWithInterests = new Set(
-          data?.map((interest) => interest.interest_date) || []
+          data?.map((interest: Interest) => interest.interest_date) || []
         );
 
         // Apply interest data and highlight dates that need action
-        data?.forEach((interest) => {
+        data?.forEach((interest: Interest) => {
           const dateStr = interest.interest_date;
           // Process interests for all dates that are in markedDates
           if (marked[dateStr]) {

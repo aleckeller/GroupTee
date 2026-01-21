@@ -57,9 +57,9 @@ export function useInterestsForDate(
         return;
       }
 
-      const memberIds = new Set(groupMembers.data?.map((m) => m.user_id) || []);
+      const memberIds = new Set(groupMembers.data?.map((m: { user_id: string }) => m.user_id) || []);
       const filteredInterests =
-        data?.filter((interest) => memberIds.has(interest.user_id)) || [];
+        data?.filter((interest: InterestWithProfile) => memberIds.has(interest.user_id)) || [];
 
       setInterests(filteredInterests);
     } catch (error) {

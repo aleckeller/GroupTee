@@ -40,7 +40,7 @@ export function useAvailableUsers(groupId: string | undefined): UseAvailableUser
           .select("user_id")
           .eq("group_id", groupId);
 
-        const existingUserIds = (existingMembers || []).map((m) => m.user_id);
+        const existingUserIds = (existingMembers || []).map((m: { user_id: string }) => m.user_id);
 
         // Build query for available users
         let queryBuilder = supabase
@@ -66,7 +66,7 @@ export function useAvailableUsers(groupId: string | undefined): UseAvailableUser
           return;
         }
 
-        const profiles: UserProfile[] = (data || []).map((p) => ({
+        const profiles: UserProfile[] = (data || []).map((p: { id: string; full_name: string | null }) => ({
           id: p.id,
           full_name: p.full_name,
           role: "guest" as const,

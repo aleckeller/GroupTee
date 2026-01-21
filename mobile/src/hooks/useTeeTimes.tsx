@@ -51,12 +51,22 @@ export const useTeeTimes = (groupId: string | null) => {
         return;
       }
 
+      // Define the assignment type for proper typing
+      type AssignmentData = {
+        id: string;
+        user_id: string | null;
+        invitation_id: string | null;
+        guest_names: string[] | null;
+        profiles: { id: string; full_name: string } | null;
+        invitations: { id: string; display_name: string | null } | null;
+      };
+
       // Transform the data to match our TeeTime type
       const teeTimesWithPlayers =
-        data?.map((teeTime) => ({
+        data?.map((teeTime: TeeTime & { assignments?: AssignmentData[] }) => ({
           ...teeTime,
           players:
-            teeTime.assignments?.map((assignment: any) => {
+            teeTime.assignments?.map((assignment: AssignmentData) => {
               // Check if this is a pending member (invitation) or a regular user
               if (assignment.invitation_id && !assignment.user_id) {
                 // Pending member - use invitation data
@@ -69,7 +79,8 @@ export const useTeeTimes = (groupId: string | null) => {
               }
               // Regular user - use profile data
               return {
-                ...assignment.profiles,
+                id: assignment.profiles?.id || assignment.user_id || "",
+                full_name: assignment.profiles?.full_name || "Unknown",
                 guest_names: assignment.guest_names || [],
                 is_pending: false,
               };
@@ -77,7 +88,7 @@ export const useTeeTimes = (groupId: string | null) => {
           weekends: teeTime.weekends,
         })) || [];
 
-      setTeeTimes(teeTimesWithPlayers);
+      setTeeTimes(teeTimesWithPlayers as TeeTime[]);
     } catch (error) {
       console.error("Error loading tee times:", error);
       setTeeTimes([]);

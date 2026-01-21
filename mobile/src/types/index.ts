@@ -342,7 +342,8 @@ export type UseInvitationsReturn = {
     inviteCode: string;
     groupName: string;
     inviterName: string;
-    displayName: string;
+    displayName?: string;
+    expiresAt?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   getGroupInvitations: (groupId: string) => Promise<Invitation[]>;
   linkInvitationToUser: (invitationId: string, userId: string) => Promise<{ success: boolean; error?: string }>;

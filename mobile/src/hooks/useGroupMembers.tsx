@@ -40,7 +40,7 @@ export function useGroupMembers(groupId: string | null) {
       }
 
       const formattedMembers: GroupMember[] = (data || []).map(
-        (membership) => ({
+        (membership: any) => ({
           id: membership.profiles.id,
           full_name: membership.profiles.full_name,
           role: membership.role as "admin" | "member" | "guest",
@@ -119,7 +119,7 @@ export function useRoster(groupId: string | null) {
 
       // Convert real members to RosterMember format
       const realMembers: RosterMember[] = (membersResult.data || []).map(
-        (membership) => ({
+        (membership: any) => ({
           id: membership.profiles.id,
           display_name: membership.profiles.full_name || "Unknown",
           role: membership.role as "admin" | "member" | "guest",

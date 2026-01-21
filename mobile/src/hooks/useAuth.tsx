@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (memberships && memberships.length > 0) {
           // If user has any admin memberships, they're an admin
-          const hasAdminRole = memberships.some((m) => m.role === "admin");
+          const hasAdminRole = memberships.some((m: { role: string }) => m.role === "admin");
           role = hasAdminRole ? "admin" : "member";
         }
 
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       if (data.session?.user) {
@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      async (event: string, newSession: Session | null) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {

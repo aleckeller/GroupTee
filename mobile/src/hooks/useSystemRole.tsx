@@ -30,7 +30,7 @@ export function useSystemRole(): UseSystemRoleReturn {
         .eq("user_id", userProfile.id);
 
       setIsSysadmin(!!sysadminData);
-      setClubAdminOf(clubAdminData?.map((ca) => ca.club_id) || []);
+      setClubAdminOf(clubAdminData?.map((ca: { club_id: string }) => ca.club_id) || []);
     } catch (error) {
       console.error("Error fetching system roles:", error);
     } finally {

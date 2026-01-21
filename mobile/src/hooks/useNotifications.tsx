@@ -24,7 +24,7 @@ export const useNotifications = (userId: string | null) => {
       if (error) throw error;
 
       setNotifications(data || []);
-      setUnreadCount(data?.filter((n) => !n.read).length || 0);
+      setUnreadCount(data?.filter((n: Notification) => !n.read).length || 0);
     } catch (error) {
       console.error("Error loading notifications:", error);
       setNotifications([]);

@@ -98,7 +98,7 @@ export default function TeeTimeAssignmentScreen() {
 
         const guestNamesMap: { [key: string]: string[] } = {};
 
-        data?.forEach((assignment) => {
+        data?.forEach((assignment: { user_id: string | null; invitation_id: string | null; guest_names: string[] | null }) => {
           if (assignment.guest_names && assignment.guest_names.length > 0) {
             const playerId = assignment.user_id || assignment.invitation_id;
             if (playerId) {
