@@ -354,6 +354,16 @@ create policy "service role insert" on external_tee_sheets for insert to service
 grant usage on schema public to postgres, anon, authenticated, service_role;
 grant all on public.profiles to postgres, anon, authenticated, service_role;
 
+-- Service role grants for ETL pipeline and admin scripts
+-- The service_role bypasses RLS but still needs table-level grants
+grant select, insert on public.clubs to service_role;
+grant select, insert on public.groups to service_role;
+grant select, insert on public.memberships to service_role;
+grant select, insert on public.invitations to service_role;
+grant select, insert on public.weekends to service_role;
+grant select, insert, update on public.tee_times to service_role;
+grant all on public.external_tee_sheets to anon, authenticated, service_role;
+
 --------------------------------------------------------------------------------
 -- TRIGGERS & FUNCTIONS
 --------------------------------------------------------------------------------

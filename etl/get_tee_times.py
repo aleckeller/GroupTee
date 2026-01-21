@@ -169,29 +169,18 @@ def go_to_teesheet_1757(driver, wait):
 
     driver.switch_to.window(driver.window_handles[-1])
 
-    max_cf_wait = 15
-    for i in range(max_cf_wait):
+    # Wait for Cloudflare challenge to resolve (if present)
+    for _ in range(15):
         if "Just a moment" not in driver.title:
             break
-        print(f"  Waiting... ({i + 1}/{max_cf_wait})")
         time.sleep(1)
 
-    # Debug: print current state
-    print(f"  DEBUG: Window handles: {len(driver.window_handles)}")
-    print(f"  DEBUG: Current URL: {driver.current_url}")
-    print(f"  DEBUG: Page title: {driver.title}")
-
     # Wait for the tee sheet link to be present after switching windows
-    try:
-        view_teesheet_link = wait.until(
-            expected_conditions.presence_of_element_located(
-                (By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]')
-            )
+    view_teesheet_link = wait.until(
+        expected_conditions.presence_of_element_located(
+            (By.CSS_SELECTOR, 'a[ui-sref="view-teesheet"]')
         )
-    except Exception as e:
-        # Dump page source for debugging
-        print(f"  DEBUG: Page source (first 2000 chars):\n{driver.page_source[:2000]}")
-        raise
+    )
     driver.execute_script("arguments[0].scrollIntoView();", view_teesheet_link)
     driver.execute_script("arguments[0].click();", view_teesheet_link)
 
@@ -386,16 +375,9 @@ def store_raw_tee_sheet(
     supabase: Client, club_id: str, tee_date: str, tee_sheet: list[dict]
 ):
     """Store the raw tee sheet data for audit purposes."""
-    try:
-        supabase.table("external_tee_sheets").insert(
-            {"club_id": club_id, "scraped_date": tee_date, "raw_data": tee_sheet}
-        ).execute()
-    except Exception as e:
-        print(f"  DEBUG: Failed to store tee sheet. club_id={club_id}, date={tee_date}")
-        print(f"  DEBUG: Error: {e}")
-        # Skip this step rather than failing the whole ETL
-        print("  WARNING: Skipping raw tee sheet storage, continuing with ETL...")
-        return
+    supabase.table("external_tee_sheets").insert(
+        {"club_id": club_id, "scraped_date": tee_date, "raw_data": tee_sheet}
+    ).execute()
 
 
 def process_day(
