@@ -82,4 +82,4 @@ Routes:
 - Screens roughly match the `design/golf_tee_times_app.html` structure (cards, headers, badges, forms, grids).
 - Dashboard shows stubbed stats and tee times.
 - Interest form inserts a dummy row.
-- Demo button calls backend `/me` and displays user info.
+- Demo button calls backend `/me` and displays user info..
