@@ -127,17 +127,27 @@ def select_upcoming_day(driver, wait, day_of_week: int) -> str:
     )
 
     # Use jQuery UI datepicker API to set the date directly,
-    # avoiding month navigation issues across month boundaries
+    # avoiding month navigation issues across month boundaries.
+    # Then trigger AngularJS digest cycle so the tee sheet reloads.
     js_month = next_day.month - 1  # JavaScript months are 0-indexed
     driver.execute_script(
         """
         var dp = $('#dateInput');
         dp.datepicker('setDate', new Date(arguments[0], arguments[1], arguments[2]));
-        dp.trigger('change');
+        var el = dp[0];
+        angular.element(el).triggerHandler('change');
         """,
         next_day.year,
         js_month,
         next_day.day,
+    )
+
+    # Wait for the tee sheet to reload after date change
+    time.sleep(2)
+    wait.until(
+        expected_conditions.invisibility_of_element_located(
+            (By.CSS_SELECTOR, "i.fa-spinner")
+        )
     )
 
     return next_day.isoformat()
