@@ -130,6 +130,25 @@ def select_upcoming_day(driver, wait, day_of_week: int) -> str:
             (By.CLASS_NAME, "ui-datepicker-calendar")
         )
     )
+
+    # Navigate to the correct month if the target date is in a different month
+    for _ in range(3):
+        header = driver.find_element(By.CLASS_NAME, "ui-datepicker-title")
+        month_el = header.find_element(By.CLASS_NAME, "ui-datepicker-month")
+        year_el = header.find_element(By.CLASS_NAME, "ui-datepicker-year")
+        displayed_month = month_el.text.strip()
+        displayed_year = int(year_el.text.strip())
+
+        target_month_name = next_day.strftime("%B")
+        target_year = next_day.year
+
+        if displayed_month == target_month_name and displayed_year == target_year:
+            break
+
+        next_btn = driver.find_element(By.CLASS_NAME, "ui-datepicker-next")
+        driver.execute_script("arguments[0].click();", next_btn)
+        time.sleep(0.5)
+
     calendar = driver.find_element(By.CLASS_NAME, "ui-datepicker-calendar")
     date_links = calendar.find_elements(By.TAG_NAME, "a")
 
