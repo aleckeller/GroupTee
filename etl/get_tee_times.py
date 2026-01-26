@@ -120,6 +120,12 @@ def select_upcoming_day(driver, wait, day_of_week: int) -> str:
             (By.CSS_SELECTOR, "input[aria-describedby]")
         )
     )
+    # Wait for any loading spinner to disappear before clicking the calendar
+    wait.until(
+        expected_conditions.invisibility_of_element_located(
+            (By.CSS_SELECTOR, "i.fa-spinner")
+        )
+    )
     calendar_input = driver.find_element(
         By.CSS_SELECTOR, 'input[aria-describedby="dateInput"]'
     )
