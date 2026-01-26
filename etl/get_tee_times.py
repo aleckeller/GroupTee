@@ -439,10 +439,7 @@ def process_day(
         # Sync each tee time to appropriate group
         for tt in won_tee_times:
             sync_single_tee_time(supabase, tt["group_id"], weekend_id, tee_date, tt)
-            member_type = "pending" if tt["invitation_id"] else "member"
-            print(
-                f"    - {tt['tee_time']} -> group {tt['group_id'][:8]}... (won by {tt['won_by_name']} [{member_type}])"
-            )
+            print(f"    - {tt['tee_time']} — {tt['won_by_name']}")
 
     # Store raw data for audit
     store_raw_tee_sheet(supabase, club_id, tee_date, tee_sheet)
