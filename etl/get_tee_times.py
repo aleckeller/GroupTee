@@ -113,58 +113,34 @@ def select_upcoming_day(driver, wait, day_of_week: int) -> str:
     if days_ahead <= 0:
         days_ahead += 7
     next_day = today + datetime.timedelta(days=days_ahead)
-    target_day = next_day.day
 
     wait.until(
         expected_conditions.presence_of_element_located(
             (By.CSS_SELECTOR, "input[aria-describedby]")
         )
     )
-    # Wait for any loading spinner to disappear before clicking the calendar
+    # Wait for any loading spinner to disappear before interacting
     wait.until(
         expected_conditions.invisibility_of_element_located(
             (By.CSS_SELECTOR, "i.fa-spinner")
         )
     )
-    calendar_input = driver.find_element(
-        By.CSS_SELECTOR, 'input[aria-describedby="dateInput"]'
+
+    # Use jQuery UI datepicker API to set the date directly,
+    # avoiding month navigation issues across month boundaries
+    js_month = next_day.month - 1  # JavaScript months are 0-indexed
+    driver.execute_script(
+        """
+        var dp = $('#dateInput');
+        dp.datepicker('setDate', new Date(arguments[0], arguments[1], arguments[2]));
+        dp.trigger('change');
+        """,
+        next_day.year,
+        js_month,
+        next_day.day,
     )
-    calendar_input.click()
 
-    wait.until(
-        expected_conditions.presence_of_element_located(
-            (By.CLASS_NAME, "ui-datepicker-calendar")
-        )
-    )
-
-    # Navigate to the correct month if the target date is in a different month
-    for _ in range(3):
-        header = driver.find_element(By.CLASS_NAME, "ui-datepicker-title")
-        month_el = header.find_element(By.CLASS_NAME, "ui-datepicker-month")
-        year_el = header.find_element(By.CLASS_NAME, "ui-datepicker-year")
-        displayed_month = month_el.text.strip()
-        displayed_year = int(year_el.text.strip())
-
-        target_month_name = next_day.strftime("%B")
-        target_year = next_day.year
-
-        if displayed_month == target_month_name and displayed_year == target_year:
-            break
-
-        next_btn = driver.find_element(By.CLASS_NAME, "ui-datepicker-next")
-        driver.execute_script("arguments[0].click();", next_btn)
-        time.sleep(0.5)
-
-    calendar = driver.find_element(By.CLASS_NAME, "ui-datepicker-calendar")
-    date_links = calendar.find_elements(By.TAG_NAME, "a")
-
-    for link in date_links:
-        date_text = link.get_attribute("textContent").strip()
-        if date_text == str(target_day):
-            driver.execute_script("arguments[0].click();", link)
-            return next_day.isoformat()
-
-    raise Exception(f"Upcoming day {day_of_week} not found in calendar.")
+    return next_day.isoformat()
 
 
 def go_to_teesheet_1757(driver, wait):
