@@ -113,44 +113,51 @@ def select_upcoming_day(driver, wait, day_of_week: int) -> str:
     if days_ahead <= 0:
         days_ahead += 7
     next_day = today + datetime.timedelta(days=days_ahead)
+    target_day = next_day.day
 
     wait.until(
         expected_conditions.presence_of_element_located(
             (By.CSS_SELECTOR, "input[aria-describedby]")
         )
     )
-    # Wait for any loading spinner to disappear before interacting
+    calendar_input = driver.find_element(
+        By.CSS_SELECTOR, 'input[aria-describedby="dateInput"]'
+    )
+    calendar_input.click()
+
     wait.until(
-        expected_conditions.invisibility_of_element_located(
-            (By.CSS_SELECTOR, "i.fa-spinner")
+        expected_conditions.presence_of_element_located(
+            (By.CLASS_NAME, "ui-datepicker-calendar")
         )
     )
+    calendar = driver.find_element(By.CLASS_NAME, "ui-datepicker-calendar")
+    date_links = calendar.find_elements(By.TAG_NAME, "a")
 
-    # Use jQuery UI datepicker API to set the date directly,
-    # avoiding month navigation issues across month boundaries.
-    # Then trigger AngularJS digest cycle so the tee sheet reloads.
-    js_month = next_day.month - 1  # JavaScript months are 0-indexed
-    driver.execute_script(
-        """
-        var dp = $('#dateInput');
-        dp.datepicker('setDate', new Date(arguments[0], arguments[1], arguments[2]));
-        var el = dp[0];
-        angular.element(el).triggerHandler('change');
-        """,
-        next_day.year,
-        js_month,
-        next_day.day,
-    )
+    for link in date_links:
+        date_text = link.get_attribute("textContent").strip()
+        if date_text == str(target_day):
+            driver.execute_script("arguments[0].click();", link)
+            return next_day.isoformat()
 
-    # Wait for the tee sheet to reload after date change
-    time.sleep(2)
+    # Target day not found in current month — navigate to next month and retry
+    next_button = driver.find_element(By.CLASS_NAME, "ui-datepicker-next")
+    driver.execute_script("arguments[0].click();", next_button)
+
     wait.until(
-        expected_conditions.invisibility_of_element_located(
-            (By.CSS_SELECTOR, "i.fa-spinner")
+        expected_conditions.presence_of_element_located(
+            (By.CLASS_NAME, "ui-datepicker-calendar")
         )
     )
+    calendar = driver.find_element(By.CLASS_NAME, "ui-datepicker-calendar")
+    date_links = calendar.find_elements(By.TAG_NAME, "a")
 
-    return next_day.isoformat()
+    for link in date_links:
+        date_text = link.get_attribute("textContent").strip()
+        if date_text == str(target_day):
+            driver.execute_script("arguments[0].click();", link)
+            return next_day.isoformat()
+
+    raise Exception(f"Upcoming day {day_of_week} not found in calendar.")
 
 
 def go_to_teesheet_1757(driver, wait):
