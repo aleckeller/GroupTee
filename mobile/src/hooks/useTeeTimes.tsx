@@ -106,6 +106,26 @@ export const useTeeTimes = (groupId: string | null) => {
   const deleteTeeTime = useCallback(
     async (teeTimeId: string) => {
       try {
+        // Check for assigned players before deleting
+        const { count, error: countError } = await supabase
+          .from("assignments")
+          .select("*", { count: "exact", head: true })
+          .eq("tee_time_id", teeTimeId);
+
+        if (countError) {
+          console.error("Error checking assignments:", countError);
+          Alert.alert("Error", "Failed to delete tee time");
+          return false;
+        }
+
+        if (count && count > 0) {
+          Alert.alert(
+            "Cannot Delete",
+            "This tee time has players assigned. Remove all players before deleting."
+          );
+          return false;
+        }
+
         const { error } = await supabase
           .from("tee_times")
           .delete()

@@ -12,6 +12,7 @@ import {
 import { LockoutStatus } from "../types";
 import { useRoster } from "../hooks/useGroupMembers";
 import { useAuth } from "../hooks/useAuth";
+import { formatDate } from "../utils/formatting";
 
 interface DayInterest {
   wants_to_play: boolean | null;
@@ -144,15 +145,6 @@ export default function DayInterestModal({
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   const togglePartner = (memberId: string) => {
     if (lockoutStatus?.isLocked) return;

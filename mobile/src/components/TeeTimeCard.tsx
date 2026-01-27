@@ -27,15 +27,12 @@ export default function TeeTimeCard({
     teeTime.max_players
   );
 
-  const handleDelete = () => {
-    const playerCount = teeTime.players?.length || 0;
-    const message = playerCount > 0
-      ? `This tee time has ${playerCount} player${playerCount > 1 ? "s" : ""} assigned. Are you sure you want to delete it?`
-      : "Are you sure you want to delete this tee time?";
+  const hasPlayers = playerCount > 0;
 
+  const handleDelete = () => {
     Alert.alert(
       "Delete Tee Time",
-      message,
+      "Are you sure you want to delete this tee time?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -67,11 +64,12 @@ export default function TeeTimeCard({
           </View>
           {isAdmin && onDelete && (
             <Pressable
-              style={styles.deleteButton}
+              style={[styles.deleteButton, hasPlayers && styles.deleteButtonDisabled]}
               onPress={handleDelete}
               hitSlop={8}
+              disabled={hasPlayers}
             >
-              <Text style={styles.deleteButtonText}>Delete</Text>
+              <Text style={[styles.deleteButtonText, hasPlayers && styles.deleteButtonTextDisabled]}>Delete</Text>
             </Pressable>
           )}
         </View>
@@ -208,6 +206,14 @@ const styles = StyleSheet.create({
     color: "#dc2626",
     fontSize: 12,
     fontWeight: "600",
+  },
+  deleteButtonDisabled: {
+    backgroundColor: "#f1f5f9",
+    borderColor: "#e2e8f0",
+    opacity: 0.5,
+  },
+  deleteButtonTextDisabled: {
+    color: "#94a3b8",
   },
   teeTime: {
     fontWeight: "700",
