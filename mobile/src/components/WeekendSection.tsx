@@ -64,7 +64,6 @@ export default function WeekendSection({
   weekendId,
   weekend,
   teeTimes,
-  interests,
   onDeleteTeeTime,
 }: WeekendSectionProps) {
   const navigation = useNavigation();
@@ -103,7 +102,6 @@ export default function WeekendSection({
                 onDelete={onDeleteTeeTime ? () => onDeleteTeeTime(teeTime.id) : undefined}
                 isAdmin={isAdmin}
                 currentUserId={user?.id}
-                interests={interests}
               />
             ))}
           </View>

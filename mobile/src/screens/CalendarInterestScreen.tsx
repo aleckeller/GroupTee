@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { Calendar } from "react-native-calendars";
+import { useFocusEffect } from "@react-navigation/native";
 import RoleGuard from "@/components/RoleGuard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
@@ -48,6 +49,18 @@ export default function CalendarInterestScreen() {
       loadAllInterests();
     }
   }, [user, loadAllInterests]);
+
+  // Refresh interests (and assigned dates) when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (availableDates.size > 0) {
+        const currentDate = new Date();
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+        loadInterests(`${year}-${month}`);
+      }
+    }, [availableDates, loadInterests])
+  );
 
   // Load interests when available dates change
   useEffect(() => {

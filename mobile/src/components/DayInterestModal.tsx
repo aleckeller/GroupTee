@@ -206,7 +206,8 @@ export default function DayInterestModal({
               <View
                 style={[
                   styles.lockoutContainer,
-                  lockoutStatus.isLocked && styles.lockoutContainerLocked,
+                  lockoutStatus.isAssigned && styles.lockoutContainerAssigned,
+                  lockoutStatus.isLocked && !lockoutStatus.isAssigned && styles.lockoutContainerLocked,
                   lockoutStatus.isApproachingLockout &&
                     !lockoutStatus.isLocked &&
                     styles.lockoutContainerWarning,
@@ -215,7 +216,8 @@ export default function DayInterestModal({
                 <Text
                   style={[
                     styles.lockoutText,
-                    lockoutStatus.isLocked && styles.lockoutTextLocked,
+                    lockoutStatus.isAssigned && styles.lockoutTextAssigned,
+                    lockoutStatus.isLocked && !lockoutStatus.isAssigned && styles.lockoutTextLocked,
                     lockoutStatus.isApproachingLockout &&
                       !lockoutStatus.isLocked &&
                       styles.lockoutTextWarning,
@@ -604,6 +606,8 @@ export default function DayInterestModal({
                 <Text style={styles.saveButtonText}>
                   {isSaving
                     ? "Saving..."
+                    : lockoutStatus?.isAssigned
+                    ? "Assigned"
                     : lockoutStatus?.isLocked
                     ? "Locked"
                     : "Save"}
@@ -759,6 +763,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
     borderColor: "#9ca3af",
   },
+  lockoutContainerAssigned: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#3b82f6",
+  },
   lockoutContainerWarning: {
     backgroundColor: "#fef3c7",
     borderColor: "#f59e0b",
@@ -771,6 +779,9 @@ const styles = StyleSheet.create({
   },
   lockoutTextLocked: {
     color: "#9ca3af",
+  },
+  lockoutTextAssigned: {
+    color: "#3b82f6",
   },
   lockoutTextWarning: {
     color: "#f59e0b",

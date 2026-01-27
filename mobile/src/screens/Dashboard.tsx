@@ -14,7 +14,6 @@ import { useStats } from "@/hooks/useStats";
 import { useTeeTimes } from "@/hooks/useTeeTimes";
 import { useMyTeeTimes } from "@/hooks/useMyTeeTimes";
 import { useWeekends } from "@/hooks/useWeekends";
-import { useGroupInterests } from "@/hooks/useGroupInterests";
 import { groupTeeTimesByWeekend } from "@/utils/teeTimeUtils";
 import StatsCard from "@/components/StatsCard";
 import WeekendSection from "@/components/WeekendSection";
@@ -50,10 +49,6 @@ export default function Dashboard() {
     loading: myTeeTimesLoading,
     refresh: refreshMyTeeTimes,
   } = useMyTeeTimes(user?.id || null);
-  const {
-    interests,
-    refresh: refreshInterests,
-  } = useGroupInterests(selectedGroup?.id || null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Handle tee time deletion and refresh stats
@@ -79,7 +74,6 @@ export default function Dashboard() {
           if (selectedGroup?.id) {
             refreshTeeTimes();
             refreshMyTeeTimes();
-            refreshInterests();
           }
         }
       }
@@ -88,13 +82,11 @@ export default function Dashboard() {
       if (selectedGroup?.id) {
         refreshTeeTimes();
         refreshMyTeeTimes();
-        refreshInterests();
       }
     }, [
       selectedGroup?.id,
       refreshTeeTimes,
       refreshMyTeeTimes,
-      refreshInterests,
     ])
   );
 
@@ -107,7 +99,6 @@ export default function Dashboard() {
         refreshTeeTimes(),
         refreshMyTeeTimes(),
         refreshWeekends(),
-        refreshInterests(),
       ]);
     } catch (error) {
       console.error("Error refreshing data:", error);
@@ -241,7 +232,6 @@ export default function Dashboard() {
                         weekendId={weekend.id}
                         weekend={weekend}
                         teeTimes={weekendTeeTimes}
-                        interests={interests}
                         onDeleteTeeTime={handleDeleteTeeTime}
                       />
                     </View>

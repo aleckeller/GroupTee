@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Weekend } from "../types";
 
 export const useWeekends = () => {
   const [weekends, setWeekends] = useState<Weekend[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const hasLoadedRef = useRef(false);
 
   const loadWeekends = async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("weekends")
@@ -20,6 +21,7 @@ export const useWeekends = () => {
       }
 
       setWeekends(data || []);
+      hasLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading weekends:", error);
     } finally {

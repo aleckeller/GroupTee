@@ -89,6 +89,7 @@ export type LockoutStatus = {
   isApproachingLockout: boolean;
   daysUntilLockout: number;
   message: string | null;
+  isAssigned?: boolean;
 };
 
 // Assignment Types
@@ -239,14 +240,12 @@ export type TeeTimeCardProps = {
   onDelete?: () => void;
   isAdmin?: boolean;
   currentUserId?: string | null;
-  interests?: Interest[];
 };
 
 export type WeekendSectionProps = {
   weekendId: string;
   weekend: Weekend;
   teeTimes: TeeTime[];
-  interests?: Interest[];
   onDeleteTeeTime?: (teeTimeId: string) => void;
 };
 

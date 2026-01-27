@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import { formatTime, getAvailabilityStatus } from "@/utils/formatting";
-import { TeeTimeCardProps, Interest } from "../types";
+import { TeeTimeCardProps } from "../types";
 
 export default function TeeTimeCard({
   teeTime,
@@ -9,19 +9,15 @@ export default function TeeTimeCard({
   onDelete,
   isAdmin,
   currentUserId,
-  interests,
 }: TeeTimeCardProps) {
   const playerCount = teeTime.players?.length || 0;
 
   // Calculate total spots used including guests
   const getTotalSpotsUsed = () => {
-    if (!teeTime.players || !interests) return playerCount;
+    if (!teeTime.players) return playerCount;
 
     return teeTime.players.reduce((total, player) => {
-      const playerInterest = interests.find(
-        (interest) => interest.user_id === player.id
-      );
-      return total + 1 + (playerInterest?.guest_count || 0);
+      return total + 1 + (player.guest_names?.length || 0);
     }, 0);
   };
 
@@ -89,13 +85,8 @@ export default function TeeTimeCard({
                 const isCurrentUser =
                   currentUserId && player.id === currentUserId;
 
-                // Find interest data for this player
-                const playerInterest = interests?.find(
-                  (interest) => interest.user_id === player.id
-                );
-                const guestCount = playerInterest?.guest_count || 0;
-
                 const playerId = player.id || `index-${playerIndex}`;
+                const playerGuestNames = player.guest_names || [];
 
                 // Create array of all spots (member + guests)
                 const allSpots = [
@@ -107,15 +98,11 @@ export default function TeeTimeCard({
                   },
                 ];
 
-                // Add guest spots
-                const playerGuestNames = player.guest_names || [];
-                for (let i = 1; i <= guestCount; i++) {
-                  const guestName =
-                    playerGuestNames[i - 1] ||
-                    `${player.full_name}'s Guest ${i}`;
+                // Add guest spots from assignment data
+                for (let i = 0; i < playerGuestNames.length; i++) {
                   allSpots.push({
                     id: `${playerId}_guest_${i}`,
-                    name: guestName,
+                    name: playerGuestNames[i] || `${player.full_name}'s Guest ${i + 1}`,
                     isGuest: true,
                     isCurrentUser: false,
                   });

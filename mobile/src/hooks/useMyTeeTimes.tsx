@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { TeeTime } from "../types";
 
 export const useMyTeeTimes = (userId: string | null) => {
   const [myTeeTimes, setMyTeeTimes] = useState<TeeTime[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const hasLoadedRef = useRef(false);
 
   const loadMyTeeTimes = useCallback(async () => {
     if (!userId) {
@@ -12,7 +13,7 @@ export const useMyTeeTimes = (userId: string | null) => {
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("assignments")
@@ -82,6 +83,7 @@ export const useMyTeeTimes = (userId: string | null) => {
         }) || [];
 
       setMyTeeTimes(transformedTeeTimes);
+      hasLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading my tee times:", error);
       setMyTeeTimes([]);

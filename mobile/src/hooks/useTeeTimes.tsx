@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { TeeTime } from "../types";
 import { Alert } from "react-native";
@@ -6,6 +6,7 @@ import { Alert } from "react-native";
 export const useTeeTimes = (groupId: string | null) => {
   const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const hasLoadedRef = useRef(false);
 
   const loadTeeTimes = useCallback(async () => {
     if (!groupId) {
@@ -13,7 +14,7 @@ export const useTeeTimes = (groupId: string | null) => {
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("tee_times")
@@ -89,6 +90,7 @@ export const useTeeTimes = (groupId: string | null) => {
         })) || [];
 
       setTeeTimes(teeTimesWithPlayers as TeeTime[]);
+      hasLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading tee times:", error);
       setTeeTimes([]);

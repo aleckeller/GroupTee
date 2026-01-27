@@ -124,11 +124,8 @@ export default function TeeTimeAssignmentScreen() {
 
   const getCurrentTotalSpots = () => {
     return assignedPlayers.reduce((total, player) => {
-      // Find the member's interest to get their guest count
-      const memberInterest = interests?.find(
-        (interest) => interest.user_id === player.id
-      );
-      return total + 1 + (memberInterest?.guest_count || 0);
+      const playerGuestCount = (guestNames[player.id] || []).length;
+      return total + 1 + playerGuestCount;
     }, 0);
   };
 
@@ -185,11 +182,20 @@ export default function TeeTimeAssignmentScreen() {
     try {
       setLoading(true);
 
+      // Build default guest names from interest data
+      const memberInterest = getMemberInterest(member.id);
+      const guestCount = memberInterest?.guest_count || 0;
+      const defaultGuestNames = Array.from(
+        { length: guestCount },
+        (_, i) => `${member.full_name}'s Guest ${i + 1}`
+      );
+
       // Add the player to the tee time
       const { error } = await supabase.from("assignments").insert({
         tee_time_id: teeTime.id,
         user_id: member.id,
         weekend_id: teeTime.weekend_id,
+        ...(guestCount > 0 && { guest_names: defaultGuestNames }),
       });
 
       if (error) {
@@ -208,8 +214,17 @@ export default function TeeTimeAssignmentScreen() {
         id: member.id,
         full_name: member.full_name || "Unknown",
         is_pending: false,
+        guest_names: defaultGuestNames,
       };
       setAssignedPlayers([...assignedPlayers, newPlayer]);
+
+      // Update guest names map for display
+      if (guestCount > 0) {
+        setGuestNames((prev) => ({
+          ...prev,
+          [member.id]: defaultGuestNames,
+        }));
+      }
 
       // Mark that there were assignment changes
       setHasAssignmentChanges(true);
@@ -299,14 +314,11 @@ export default function TeeTimeAssignmentScreen() {
   };
 
   const handleRemovePlayer = async (player: AssignedPlayer) => {
-    const memberInterest = interests?.find(
-      (interest) => interest.user_id === player.id
-    );
-    const guestCount = player.is_pending ? 0 : (memberInterest?.guest_count || 0);
+    const playerGuestCount = (guestNames[player.id] || []).length;
 
     const guestText =
-      guestCount > 0
-        ? ` and their ${guestCount} guest${guestCount > 1 ? "s" : ""}`
+      playerGuestCount > 0
+        ? ` and their ${playerGuestCount} guest${playerGuestCount > 1 ? "s" : ""}`
         : "";
 
     Alert.alert(
@@ -344,18 +356,20 @@ export default function TeeTimeAssignmentScreen() {
       }
 
       // Update local state
+      const removedGuestCount = (guestNames[player.id] || []).length;
       setAssignedPlayers(assignedPlayers.filter((p) => p.id !== player.id));
+      setGuestNames((prev) => {
+        const next = { ...prev };
+        delete next[player.id];
+        return next;
+      });
 
       // Mark that there were assignment changes
       setHasAssignmentChanges(true);
 
-      const memberInterest = interests?.find(
-        (interest) => interest.user_id === player.id
-      );
-      const guestCount = player.is_pending ? 0 : (memberInterest?.guest_count || 0);
       const guestText =
-        guestCount > 0
-          ? ` and their ${guestCount} guest${guestCount > 1 ? "s" : ""}`
+        removedGuestCount > 0
+          ? ` and their ${removedGuestCount} guest${removedGuestCount > 1 ? "s" : ""}`
           : "";
 
       Alert.alert(
@@ -657,18 +671,33 @@ export default function TeeTimeAssignmentScreen() {
         }
       }
 
-      // Create mock assignments
-      const newPlayers: Player[] = selectedMembers.map((member) => ({
-        id: member.id,
-        full_name: member.full_name || "Unknown",
-      }));
+      // Create assignments with guest names
+      const newPlayers: Player[] = [];
+      const newGuestNames: { [key: string]: string[] } = {};
 
-      // Simulate database operations by adding to assignments table
       for (const member of selectedMembers) {
+        const memberInterest = getMemberInterest(member.id);
+        const guestCount = memberInterest?.guest_count || 0;
+        const defaultGuestNames = Array.from(
+          { length: guestCount },
+          (_, i) => `${member.full_name}'s Guest ${i + 1}`
+        );
+
+        newPlayers.push({
+          id: member.id,
+          full_name: member.full_name || "Unknown",
+          guest_names: defaultGuestNames,
+        });
+
+        if (guestCount > 0) {
+          newGuestNames[member.id] = defaultGuestNames;
+        }
+
         const { error } = await supabase.from("assignments").insert({
           tee_time_id: teeTime.id,
           user_id: member.id,
           weekend_id: teeTime.weekend_id,
+          ...(guestCount > 0 && { guest_names: defaultGuestNames }),
         });
 
         if (error) {
@@ -684,6 +713,7 @@ export default function TeeTimeAssignmentScreen() {
 
       // Update local state
       setAssignedPlayers([...assignedPlayers, ...newPlayers]);
+      setGuestNames((prev) => ({ ...prev, ...newGuestNames }));
 
       // Mark that there were assignment changes
       setHasAssignmentChanges(true);
@@ -780,10 +810,7 @@ export default function TeeTimeAssignmentScreen() {
             <View style={styles.playersList}>
               {assignedPlayers
                 .map((player, playerIndex) => {
-                  const memberInterest = interests?.find(
-                    (interest) => interest.user_id === player.id
-                  );
-                  const guestCount = memberInterest?.guest_count || 0;
+                  const playerGuestNames = guestNames[player.id] || [];
 
                   // Create array of all spots (member + guests)
                   const allSpots = [
@@ -795,17 +822,13 @@ export default function TeeTimeAssignmentScreen() {
                     },
                   ];
 
-                  // Add guest spots
-                  const playerGuestNames = guestNames[player.id] || [];
-                  for (let i = 1; i <= guestCount; i++) {
-                    const guestName =
-                      playerGuestNames[i - 1] ||
-                      `${player.full_name}'s Guest ${i}`;
+                  // Add guest spots from assignment data
+                  for (let i = 0; i < playerGuestNames.length; i++) {
                     allSpots.push({
-                      id: `${player.id}_guest_${i}`,
-                      name: guestName,
+                      id: `${player.id}_guest_${i + 1}`,
+                      name: playerGuestNames[i] || `${player.full_name}'s Guest ${i + 1}`,
                       isGuest: true,
-                      guestNumber: i,
+                      guestNumber: i + 1,
                     });
                   }
 

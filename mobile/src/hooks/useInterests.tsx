@@ -38,6 +38,7 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
   const currentMonthRef = useRef<string | null>(null);
   const availableDatesRef = useRef(availableDates);
   availableDatesRef.current = availableDates;
+  const assignedDatesRef = useRef<Set<string>>(new Set());
 
   const loadAllInterests = useCallback(async () => {
     if (!user) return;
@@ -71,14 +72,32 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
           .toString()
           .padStart(2, "0")}-${new Date(year, monthNum, 0).getDate()}`;
 
-        const { data, error } = await supabase
-          .from("interests")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("interest_date", startDate)
-          .lte("interest_date", endDate);
+        // Fetch interests and assigned dates in parallel
+        const [interestsResult, assignedResult] = await Promise.all([
+          supabase
+            .from("interests")
+            .select("*")
+            .eq("user_id", user.id)
+            .gte("interest_date", startDate)
+            .lte("interest_date", endDate),
+          supabase
+            .from("assignments")
+            .select("tee_times!inner(tee_date)")
+            .eq("user_id", user.id),
+        ]);
 
-        if (error) throw error;
+        if (interestsResult.error) throw interestsResult.error;
+
+        // Update assigned dates ref
+        const assignedDates = new Set<string>();
+        assignedResult.data?.forEach((row: any) => {
+          if (row.tee_times?.tee_date) {
+            assignedDates.add(row.tee_times.tee_date);
+          }
+        });
+        assignedDatesRef.current = assignedDates;
+
+        const data = interestsResult.data;
 
         const marked: Record<string, any> = {};
 
@@ -272,16 +291,22 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
   };
 
   const getLockoutStatus = (date: string): LockoutStatus => {
-    const isLocked = isDateLocked(date);
+    const isAssigned = assignedDatesRef.current?.has(date) ?? false;
+    const isTimeLocked = isDateLocked(date);
+    const isLocked = isTimeLocked || isAssigned;
     const isApproachingLockout = isDateApproachingLockout(date);
     const daysUntilLockout = getDaysUntilLockout(date);
-    const message = getLockoutStatusMessage(date);
+    const timeMessage = getLockoutStatusMessage(date);
+    const message = isAssigned
+      ? "You are assigned to a tee time on this day. Preferences are locked."
+      : timeMessage;
 
     return {
       isLocked,
       isApproachingLockout,
       daysUntilLockout,
       message,
+      isAssigned,
     };
   };
 
