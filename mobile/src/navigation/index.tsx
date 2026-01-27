@@ -5,6 +5,8 @@ import AuthScreen from "@/screens/AuthScreen";
 import GroupPickerScreen from "@/screens/GroupPickerScreen";
 import TeeTimeAssignmentScreen from "@/screens/TeeTimeAssignmentScreen";
 import RedeemInviteScreen from "@/screens/RedeemInviteScreen";
+import AccountScreen from "@/screens/AccountScreen";
+import NotificationsScreen from "@/screens/NotificationsScreen";
 import {
   SysadminDashboardScreen,
   ClubAdminDashboardScreen,
@@ -125,6 +127,24 @@ export default function RootNavigator() {
             options={{
               headerShown: true,
               title: "Add Member",
+              headerBackTitle: "Back",
+            }}
+          />
+          <Stack.Screen
+            name="Account"
+            component={AccountScreen}
+            options={{
+              headerShown: true,
+              title: "Account",
+              headerBackTitle: "Back",
+            }}
+          />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+            options={{
+              headerShown: true,
+              title: "Notifications",
               headerBackTitle: "Back",
             }}
           />

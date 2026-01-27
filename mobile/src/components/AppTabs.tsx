@@ -1,11 +1,11 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroup } from "@/hooks/useGroup";
-import { useNotifications } from "@/hooks/useNotifications";
-import SignOutButton from "./SignOutButton";
+import HeaderAvatar from "./HeaderAvatar";
+import HeaderTitle from "./HeaderTitle";
+import HeaderNotificationBell from "./HeaderNotificationBell";
 import Dashboard from "@/screens/Dashboard";
 import CalendarInterestScreen from "@/screens/CalendarInterestScreen";
 import TradesScreen from "@/screens/TradesScreen";
@@ -38,22 +38,9 @@ const GUEST_TABS: TabConfig[] = [
   { name: "Roster", component: AdminRoleManager, title: "Roster" },
 ];
 
-function GroupHeaderRight() {
-  const { selectGroup } = useGroup();
-  return (
-    <Pressable
-      onPress={() => selectGroup(null)}
-      style={{ paddingHorizontal: 12 }}
-    >
-      <Text style={{ color: "#0ea5e9", fontWeight: "600" }}>Change Group</Text>
-    </Pressable>
-  );
-}
-
 function AppTabs() {
-  const { userProfile, loading, user } = useAuth();
+  const { userProfile, loading } = useAuth();
   const { selectedGroup } = useGroup();
-  const { unreadCount } = useNotifications(user?.id || null);
 
   // Show nothing while loading user profile
   if (loading || !userProfile) return null;
@@ -76,44 +63,12 @@ function AppTabs() {
   };
 
   const tabs = getTabsForRole(userProfile.role);
-  const headerTitle = selectedGroup.name;
 
   const getTabBarIcon = (tabName: string, focused: boolean) => {
     const iconSize = 24;
     const iconColor = focused ? "#007AFF" : "#8E8E93";
 
     if (tabName === "Dashboard") {
-      if (unreadCount > 0) {
-        return (
-          <View style={{ position: "relative" }}>
-            <Ionicons name="home" size={iconSize} color={iconColor} />
-            <View
-              style={{
-                position: "absolute",
-                top: -2,
-                right: -8,
-                backgroundColor: "#dc2626",
-                borderRadius: 8,
-                minWidth: 16,
-                height: 16,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: 4,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 10,
-                  fontWeight: "600",
-                }}
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Text>
-            </View>
-          </View>
-        );
-      }
       return <Ionicons name="home" size={iconSize} color={iconColor} />;
     }
 
@@ -138,9 +93,9 @@ function AppTabs() {
     <Tabs.Navigator
       initialRouteName={tabs[0].name}
       screenOptions={{
-        headerLeft: () => <SignOutButton />,
-        headerRight: () => <GroupHeaderRight />,
-        headerTitle,
+        headerLeft: () => <HeaderAvatar />,
+        headerRight: () => <HeaderNotificationBell />,
+        headerTitle: () => <HeaderTitle />,
       }}
     >
       {tabs.map((tab) => (

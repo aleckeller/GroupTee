@@ -4,11 +4,13 @@ try {
 } catch (e) {}
 
 module.exports = {
-  name: "Golf Tee Times",
-  slug: "golf-tee-times",
+  name: "GroupTee",
+  slug: "group-tee",
   scheme: "gtt",
   version: "0.1.0",
   orientation: "portrait",
+  owner: "aleckeller13",
+  plugins: ["expo-notifications"],
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.grouptee.app",
@@ -25,7 +27,7 @@ module.exports = {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
     API_URL: process.env.API_URL || "http://127.0.0.1:8000",
     eas: {
-      projectId: "YOUR_EAS_PROJECT_ID",
+      projectId: "3505ccac-ea4d-493e-89bf-4c100bb94160",
     },
   },
 };

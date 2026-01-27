@@ -1,11 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  createContext,
+  useContext,
+} from "react";
+import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import { Notification } from "../types";
+import { useAuth } from "./useAuth";
+import {
+  registerForPushNotificationsAsync,
+  savePushToken,
+  removePushToken,
+} from "@/lib/pushNotifications";
 
-export const useNotifications = (userId: string | null) => {
+interface NotificationsContextValue {
+  notifications: Notification[];
+  loading: boolean;
+  unreadCount: number;
+  markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
+  refresh: () => Promise<void>;
+}
+
+const NotificationsContext = createContext<NotificationsContextValue | null>(
+  null
+);
+
+export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { user } = useAuth();
+  const userId = user?.id || null;
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+  const notificationListener = useRef<Notifications.EventSubscription>();
+  const responseListener = useRef<Notifications.EventSubscription>();
 
   const loadNotifications = useCallback(async () => {
     if (!userId) {
@@ -43,7 +79,6 @@ export const useNotifications = (userId: string | null) => {
 
       if (error) throw error;
 
-      // Update local state
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
@@ -65,7 +100,6 @@ export const useNotifications = (userId: string | null) => {
 
       if (error) throw error;
 
-      // Update local state
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
@@ -83,26 +117,75 @@ export const useNotifications = (userId: string | null) => {
 
         if (error) throw error;
 
-        // Update local state
-        const notificationToDelete = notifications.find(
-          (n) => n.id === notificationId
-        );
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        if (notificationToDelete && !notificationToDelete.read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+        setNotifications((prev) => {
+          const toDelete = prev.find((n) => n.id === notificationId);
+          if (toDelete && !toDelete.read) {
+            setUnreadCount((c) => Math.max(0, c - 1));
+          }
+          return prev.filter((n) => n.id !== notificationId);
+        });
       } catch (error) {
         console.error("Error deleting notification:", error);
       }
     },
-    [notifications]
+    []
   );
 
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  return {
+  // Register for push notifications when user is authenticated
+  useEffect(() => {
+    if (!userId) return;
+
+    let isMounted = true;
+
+    async function setupPush() {
+      const token = await registerForPushNotificationsAsync();
+      if (token && isMounted) {
+        setExpoPushToken(token);
+        await savePushToken(userId!, token);
+      }
+    }
+
+    setupPush();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
+
+  // Clean up push token on sign-out (userId becomes null)
+  useEffect(() => {
+    return () => {
+      if (expoPushToken && userId) {
+        removePushToken(userId, expoPushToken);
+      }
+    };
+  }, [expoPushToken, userId]);
+
+  // Listen for incoming push notifications
+  useEffect(() => {
+    // Refresh in-app list when a push is received while foregrounded
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener(() => {
+        loadNotifications();
+      });
+
+    // Refresh in-app list when user taps a push notification
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener(() => {
+        loadNotifications();
+      });
+
+    return () => {
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
+    };
+  }, [loadNotifications]);
+
+  const value: NotificationsContextValue = {
     notifications,
     loading,
     unreadCount,
@@ -111,4 +194,19 @@ export const useNotifications = (userId: string | null) => {
     deleteNotification,
     refresh: loadNotifications,
   };
+
+  return (
+    <NotificationsContext.Provider value={value}>
+      {children}
+    </NotificationsContext.Provider>
+  );
+};
+
+export const useNotifications = (): NotificationsContextValue => {
+  const ctx = useContext(NotificationsContext);
+  if (!ctx)
+    throw new Error(
+      "useNotifications must be used within NotificationsProvider"
+    );
+  return ctx;
 };

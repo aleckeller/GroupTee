@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import {
@@ -31,10 +31,13 @@ interface Interest {
 }
 
 export function useInterests(user: User | null, availableDates: Set<string>) {
-  const [interestsData, setInterestsData] = useState<Interest[]>([]);
   const [allInterestsData, setAllInterestsData] = useState<Interest[]>([]);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const currentMonthRef = useRef<string | null>(null);
+  const availableDatesRef = useRef(availableDates);
+  availableDatesRef.current = availableDates;
 
   const loadAllInterests = useCallback(async () => {
     if (!user) return;
@@ -48,8 +51,8 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
       if (error) throw error;
 
       setAllInterestsData(data || []);
-    } catch (error) {
-      console.error("Error loading all interests:", error);
+    } catch (err) {
+      console.error("Error loading all interests:", err);
     }
   }, [user]);
 
@@ -58,6 +61,9 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
       if (!user) return;
 
       setLoading(true);
+      setError(null);
+      currentMonthRef.current = month;
+      const dates = availableDatesRef.current;
       try {
         const [year, monthNum] = month.split("-").map(Number);
         const startDate = `${year}-${monthNum.toString().padStart(2, "0")}-01`;
@@ -74,15 +80,10 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
 
         if (error) throw error;
 
-        setInterestsData(data || []);
-
         const marked: Record<string, any> = {};
 
         // Get all days in the current month
         const daysInMonth = new Date(year, monthNum, 0).getDate();
-        const currentMonthPrefix = `${year}-${monthNum
-          .toString()
-          .padStart(2, "0")}`;
 
         // Mark all days in the current month - enable only those with tee times
         for (let day = 1; day <= daysInMonth; day++) {
@@ -90,7 +91,7 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
             .toString()
             .padStart(2, "0")}`;
 
-          if (availableDates.has(dateStr)) {
+          if (dates.has(dateStr)) {
             // Date has tee times - enable it
             marked[dateStr] = {
               disabled: false,
@@ -152,7 +153,7 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
         });
 
         // Highlight dates that need action (available but no interest set)
-        availableDates.forEach((date) => {
+        dates.forEach((date) => {
           // Highlight dates that are available but have no interest set
           if (marked[date] && !datesWithInterests.has(date)) {
             const lockoutStatus = getLockoutStatus(date);
@@ -169,13 +170,14 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
         });
 
         setMarkedDates(marked);
-      } catch (error) {
-        console.error("Error loading interests:", error);
+      } catch (err) {
+        console.error("Error loading interests:", err);
+        setError("Failed to load calendar data. Pull down to retry.");
       } finally {
         setLoading(false);
       }
     },
-    [user, availableDates]
+    [user]
   );
 
   const saveInterest = async (
@@ -214,15 +216,20 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
 
       if (error) throw error;
 
-      // Update marked dates
+      // Optimistic update with correct colors matching loadInterests logic
+      const dotColor =
+        dayInterest.wants_to_play === true
+          ? "#10b981"
+          : dayInterest.wants_to_play === false
+            ? "#ef4444"
+            : "#0ea5e9";
       const newMarkedDates = {
         ...markedDates,
         [selectedDate]: {
+          ...markedDates[selectedDate],
           marked: true,
-          dotColor:
-            dayInterest.transportation === "walking" ? "#10b981" : "#3b82f6",
-          selectedColor:
-            dayInterest.transportation === "walking" ? "#10b981" : "#3b82f6",
+          dotColor,
+          selectedColor: dotColor,
         },
       };
       setMarkedDates(newMarkedDates);
@@ -230,12 +237,10 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
       // Reload all interests data to update stats
       await loadAllInterests();
 
-      // Reload current month interests data
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-      const yearMonth = `${year}-${month}`;
-      await loadInterests(yearMonth);
+      // Reload the currently viewed month (not necessarily today's month)
+      if (currentMonthRef.current) {
+        await loadInterests(currentMonthRef.current);
+      }
 
       setLoading(false);
       onSuccess();
@@ -281,10 +286,10 @@ export function useInterests(user: User | null, availableDates: Set<string>) {
   };
 
   return {
-    interestsData,
     allInterestsData,
     markedDates,
     loading,
+    error,
     loadInterests,
     loadAllInterests,
     saveInterest,

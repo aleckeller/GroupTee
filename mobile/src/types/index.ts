@@ -199,6 +199,8 @@ export type RootStackParamList = {
   Tabs: undefined;
   TeeTimeAssignment: { teeTime: TeeTime };
   InviteUser: { groupId: string; type: InvitationType };
+  Account: undefined;
+  Notifications: undefined;
 };
 
 export type TabParamList = {

@@ -9,8 +9,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { LockoutStatus, GroupMember } from "../types";
-import { useGroupMembers } from "../hooks/useGroupMembers";
+import { LockoutStatus } from "../types";
+import { useRoster } from "../hooks/useGroupMembers";
 import { useAuth } from "../hooks/useAuth";
 
 interface DayInterest {
@@ -65,14 +65,14 @@ export default function DayInterestModal({
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Get group members
-  const { members, loading: membersLoading } = useGroupMembers(groupId);
+  // Get group members including pending members
+  const { roster, loading: membersLoading } = useRoster(groupId);
 
   // Get current user to filter them out from partners list
   const { userProfile } = useAuth();
 
-  // Filter out current user from members list
-  const availablePartners = members.filter(
+  // Filter out current user from roster
+  const availablePartners = roster.filter(
     (member) => member.id !== userProfile?.id
   );
 
@@ -550,7 +550,7 @@ export default function DayInterestModal({
                                       styles.partnerOptionTextDisabled,
                                   ]}
                                 >
-                                  {member.full_name}
+                                  {member.display_name}{member.is_pending ? " (pending)" : ""}
                                 </Text>
                               </Pressable>
                             ))}

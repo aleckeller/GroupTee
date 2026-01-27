@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { Calendar } from "react-native-calendars";
 import RoleGuard from "@/components/RoleGuard";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,12 +18,14 @@ export default function CalendarInterestScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [calendarReady, setCalendarReady] = useState(false);
+  const [monthLoading, setMonthLoading] = useState(false);
 
   const {
-    interestsData,
     allInterestsData,
     markedDates,
     loading,
+    error,
     loadInterests,
     loadAllInterests,
     saveInterest,
@@ -54,7 +56,10 @@ export default function CalendarInterestScreen() {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, "0");
       const yearMonth = `${year}-${month}`;
-      loadInterests(yearMonth);
+      setCalendarReady(false);
+      loadInterests(yearMonth).then(() => {
+        setCalendarReady(true);
+      });
     }
   }, [availableDates, loadInterests]);
 
@@ -83,8 +88,10 @@ export default function CalendarInterestScreen() {
     // Month is already 1-based in the calendar component (1 = January, 2 = February, etc.)
     const monthString = month.month < 10 ? `0${month.month}` : month.month;
     const yearMonth = `${month.year}-${monthString}`;
-    console.log(`Month changed to: ${yearMonth}`);
-    loadInterests(yearMonth);
+    setMonthLoading(true);
+    loadInterests(yearMonth).then(() => {
+      setMonthLoading(false);
+    });
   };
 
   return (
@@ -100,35 +107,52 @@ export default function CalendarInterestScreen() {
             Tap on highlighted days to set your golf preferences
           </Text>
 
-          <Calendar
-            onDayPress={onDayPress}
-            markedDates={markedDates}
-            onMonthChange={onMonthChange}
-            disableAllTouchEventsForDisabledDays={true}
-            dayComponent={CustomDay}
-            theme={{
-              backgroundColor: "#ffffff",
-              calendarBackground: "#ffffff",
-              textSectionTitleColor: "#b6c1cd",
-              selectedDayBackgroundColor: "#0ea5e9",
-              selectedDayTextColor: "#ffffff",
-              todayTextColor: "#0ea5e9",
-              dayTextColor: "#2d4150",
-              textDisabledColor: "#d9e1e8",
-              dotColor: "#00adf5",
-              selectedDotColor: "#ffffff",
-              arrowColor: "#0ea5e9",
-              disabledArrowColor: "#d9e1e8",
-              monthTextColor: "#2d4150",
-              indicatorColor: "#0ea5e9",
-              textDayFontWeight: "300",
-              textMonthFontWeight: "bold",
-              textDayHeaderFontWeight: "300",
-              textDayFontSize: 16,
-              textMonthFontSize: 16,
-              textDayHeaderFontSize: 13,
-            }}
-          />
+          {error ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : calendarReady ? (
+            <View>
+              <Calendar
+                onDayPress={onDayPress}
+                markedDates={markedDates}
+                onMonthChange={onMonthChange}
+                disableAllTouchEventsForDisabledDays={true}
+                dayComponent={CustomDay}
+                theme={{
+                  backgroundColor: "#ffffff",
+                  calendarBackground: "#ffffff",
+                  textSectionTitleColor: "#b6c1cd",
+                  selectedDayBackgroundColor: "#0ea5e9",
+                  selectedDayTextColor: "#ffffff",
+                  todayTextColor: "#0ea5e9",
+                  dayTextColor: "#2d4150",
+                  textDisabledColor: "#d9e1e8",
+                  dotColor: "#00adf5",
+                  selectedDotColor: "#ffffff",
+                  arrowColor: "#0ea5e9",
+                  disabledArrowColor: "#d9e1e8",
+                  monthTextColor: "#2d4150",
+                  indicatorColor: "#0ea5e9",
+                  textDayFontWeight: "300",
+                  textMonthFontWeight: "bold",
+                  textDayHeaderFontWeight: "300",
+                  textDayFontSize: 16,
+                  textMonthFontSize: 16,
+                  textDayHeaderFontSize: 13,
+                }}
+              />
+              {monthLoading && (
+                <View style={styles.calendarOverlay}>
+                  <ActivityIndicator size="large" color="#0ea5e9" />
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0ea5e9" />
+            </View>
+          )}
 
           <CalendarLegend />
 
@@ -180,6 +204,24 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     textAlign: "center",
     marginBottom: 12,
+    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    height: 350,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#ffffff",
+  },
+  calendarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#ef4444",
+    textAlign: "center" as const,
     paddingHorizontal: 20,
   },
 });
